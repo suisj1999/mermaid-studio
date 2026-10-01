@@ -54,10 +54,26 @@ const THEME_CSS = `
   }
 `;
 
+/**
+ * Mermaid `themeVariables` for the studio's neo-brutalist look, scoped per
+ * mode. Returned fresh so callers can spread it without leaking state across
+ * renders.
+ */
 export function getMermaidThemeVariables(isDark: boolean) {
   return isDark ? DARK_THEME_VARIABLES : LIGHT_THEME_VARIABLES;
 }
 
+/**
+ * Build the full Mermaid configuration used at render time.
+ *
+ * Pins `theme: "base"` + `layout: "elk"` so the diagram picks up our custom
+ * theme variables; `htmlLabels: false` because Mermaid's HTML labels are an
+ * XSS surface that we'd rather not pay for; `themeCSS` adds the clickable
+ * hover affordance.
+ *
+ * `backgroundColor` overrides the theme's default `background` variable when
+ * the host wants a different panel color.
+ */
 export function buildMermaidConfig({
   isDark,
   backgroundColor,
@@ -100,6 +116,14 @@ export function buildMermaidInitDirective(isDark: boolean) {
   return `%%{init: ${JSON.stringify(payload)} }%%`;
 }
 
+/**
+ * Options passed to DOMPurify when sanitizing Mermaid's rendered SVG.
+ *
+ * Keeps the SVG + safe-HTML profiles (so Mermaid's inline-styled labels
+ * survive) and forbids `<script>` tags. Note: this is not the full
+ * allowlist — `enforceSafeMermaidLinks` runs after to drop non-https
+ * `href` attributes that DOMPurify can't infer the semantics of.
+ */
 export const MERMAID_SVG_SANITIZE_OPTIONS = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true },
   FORBID_TAGS: ["script"],

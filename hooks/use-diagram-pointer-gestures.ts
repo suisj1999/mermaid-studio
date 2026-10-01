@@ -18,12 +18,19 @@ import {
 } from "~/components/diagram-helpers";
 
 interface PointerGestureOptions {
+  /** When false, the hook is a no-op (used to gate on whether zooming is enabled). */
   enabled: boolean;
+  /** Layer that captures pointer events. */
   layerRef: RefObject<HTMLDivElement | null>;
+  /** Current view state, read by the gesture handlers on each event. */
   viewRef: RefObject<ViewState | null>;
+  /** Fired when a new gesture starts; used to cancel in-flight animations. */
   onStart: () => void;
+  /** Fired when the last pointer is released; used to flush pending UI updates. */
   onEnd: () => void;
+  /** Translate the diagram by (x, y) px in screen space. */
   panBy: (x: number, y: number) => void;
+  /** Apply a pinch-zoom centered at (x, y). Returns the new view or `null` to skip. */
   pinchTo: (
     view: ViewState,
     startX: number,
@@ -34,6 +41,15 @@ interface PointerGestureOptions {
   ) => ViewState | null;
 }
 
+/**
+ * Attach touch/mouse drag and pinch handlers to the diagram layer:
+ * - single pointer → drag-pan (with a small dead-zone to disambiguate click)
+ * - two pointers → pinch-zoom around their midpoint
+ * - suppresses click events fired immediately after a drag
+ *
+ * Pointer events from the toolbar (`[data-diagram-toolbar]`) are ignored so
+ * the zoom buttons still receive clicks.
+ */
 export function useDiagramPointerGestures({
   enabled,
   layerRef,

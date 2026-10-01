@@ -33,15 +33,25 @@ if (typeof window !== "undefined") {
 }
 
 interface DiagramProps {
+  /** Mermaid source to render. Empty / whitespace / comment-only input is treated as "nothing to render" (cleared preview, no toast). */
   chart: string;
+  /** When true, attaches the pan/zoom interaction layer + toolbar. Defaults to true. */
   zoomingEnabled?: boolean;
+  /** Called once per unique render error with the underlying Mermaid error message. */
   onRenderError?: (message: string) => void;
+  /** Called once per successful render, after the SVG has been laid out and fitted. */
   onRenderComplete?: () => void;
+  /** Class merged into the outer wrapper. */
   containerClassName?: string;
+  /** Class merged into the inner SVG-bearing element. */
   diagramClassName?: string;
+  /** Optional CSS background color overriding the theme's default. */
   backgroundColor?: string;
+  /** When `zoomingEnabled` is false, scale the diagram to fit without an interaction layer. */
   fitToContainer?: boolean;
+  /** Forwarded ref exposing the rendered SVG, used by the host's download buttons. */
   renderedSvgRef?: RefObject<SVGSVGElement | null>;
+  /** Fill the parent height instead of the default `70vh` cap. */
   fillHeight?: boolean;
 }
 
@@ -65,6 +75,17 @@ function hasRenderableContent(source: string): boolean {
   return false;
 }
 
+/**
+ * Controlled Mermaid renderer.
+ *
+ * Re-renders whenever `chart`, theme, or `backgroundColor` changes; sanitizes
+ * the resulting SVG (DOMPurify + a post-pass URL allowlist); and (optionally)
+ * drives a pan/zoom interaction layer through `useMermaidViewport`.
+ *
+ * Module-load note: also installs `mermaid.initialize({ startOnLoad: false })`
+ * synchronously so Mermaid's auto-render at the `window.load` event can't
+ * race React hydration.
+ */
 const Diagram = ({
   chart,
   zoomingEnabled = true,

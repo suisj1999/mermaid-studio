@@ -29,10 +29,15 @@ const ZOOM_LABEL_UPDATE_INTERVAL_MS = 100;
 const READABLE_TOP_INSET = 64;
 
 interface UseMermaidViewportOptions {
+  /** Inset (px) around the diagram when fitting to the container. */
   fitPadding: number;
+  /** When true and `zoomingEnabled` is false, scale the diagram to fit without an interaction layer. */
   fitToContainer: boolean;
+  /** Called once per successful fit (initial layout and post-resize). */
   onRenderComplete?: () => void;
+  /** Bumped after every render; the hook re-fits whenever this changes. */
   renderVersion: number;
+  /** When true, attaches pointer/keyboard interaction. When false, fits-only. */
   zoomingEnabled: boolean;
 }
 
@@ -84,6 +89,17 @@ function getFitScale(
   );
 }
 
+/**
+ * Bind the lifecycle of a Mermaid SVG to a pan/zoom viewport:
+ * - measures the SVG and computes a fit-scale on each render
+ * - handles pointer/touch/wheel/keyboard gestures
+ * - re-fits on container resize (preserving user pan/zoom when they've
+ *   already interacted)
+ * - debounces the zoom label so rapid wheel events don't thrash React state
+ *
+ * Returns the refs, handlers, and state the host component needs to wire up.
+ * The hook owns no DOM of its own — everything is rendered by the caller.
+ */
 export function useMermaidViewport({
   fitPadding,
   fitToContainer,

@@ -3,8 +3,12 @@ import {
   DEFAULT_OPENAI_COMPATIBLE_MODEL,
 } from "./constants";
 
-// Both providers are API-compatible third-party endpoints (not Anthropic /
-// OpenAI themselves). Naming reflects the protocol surface, not the vendor.
+/**
+ * Resolved LLM provider configuration.
+ *
+ * Both `provider` branches are API-compatible third-party endpoints (not
+ * Anthropic / OpenAI themselves) — naming reflects the wire protocol.
+ */
 export type LlmConfig =
   | {
       provider: "anthropic-compatible";
@@ -19,6 +23,13 @@ export type LlmConfig =
       model: string;
     };
 
+/**
+ * Pick the LLM configuration from environment variables.
+ *
+ * Prefers the Anthropic-compatible provider (any Anthropic-Messages-API
+ * endpoint), falls back to OpenAI-compatible. Throws when neither key is
+ * set so the route handler can surface a clear 500.
+ */
 export function readLlmConfig(): LlmConfig {
   const anthropicKey = process.env.ANTHROPIC_COMPATIBLE_API_KEY?.trim();
   if (anthropicKey) {

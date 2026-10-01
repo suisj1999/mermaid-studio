@@ -13,6 +13,11 @@ function triggerDownload(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+/**
+ * Clone an SVG with the `xmlns` and `xmlns:xlink` declarations so it renders
+ * correctly when opened outside the page that produced it (other tabs, image
+ * viewers, slide decks). Mermaid doesn't always emit these by default.
+ */
 function cloneStandaloneSvg(svg: SVGSVGElement) {
   const clone = svg.cloneNode(true) as SVGSVGElement;
   if (!clone.getAttribute("xmlns")) {
@@ -24,6 +29,11 @@ function cloneStandaloneSvg(svg: SVGSVGElement) {
   return clone;
 }
 
+/**
+ * Read the intrinsic width and height of a rendered SVG.
+ * Prefers the `viewBox` (works even when the SVG is hidden) and falls back
+ * to the live `clientWidth`/`clientHeight`.
+ */
 export function getSvgDimensions(svg: SVGSVGElement) {
   const viewBox = svg.viewBox.baseVal;
   const width =
@@ -33,6 +43,13 @@ export function getSvgDimensions(svg: SVGSVGElement) {
   return { width, height };
 }
 
+/**
+ * Serialize the SVG to a UTF-8 XML document and trigger a download.
+ *
+ * The cloned SVG is forced to have explicit `width`/`height` attributes
+ * (sourced from the viewBox) so consumers that don't auto-size render at
+ * a sensible default.
+ */
 export function downloadSvg(svg: SVGSVGElement, filename = "diagram.svg") {
   const clone = cloneStandaloneSvg(svg);
   const { width, height } = getSvgDimensions(svg);
@@ -47,6 +64,12 @@ export function downloadSvg(svg: SVGSVGElement, filename = "diagram.svg") {
   triggerDownload(blob, filename);
 }
 
+/**
+ * Rasterize the SVG to a PNG via an offscreen `<canvas>` and trigger a
+ * download. `scale` multiplies the intrinsic dimensions (default 2× for
+ * retina-density screens). Returns silently when the SVG has no measurable
+ * dimensions (e.g. before the first render).
+ */
 export async function downloadPng(
   svg: SVGSVGElement,
   filename = "diagram.png",

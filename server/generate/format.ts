@@ -1,5 +1,14 @@
 type TaggedValues = Record<string, string | undefined>;
 
+/**
+ * Wrap a record of values as `<tag>value</tag>` sections joined by blank lines.
+ *
+ * The result is the canonical "tagged message" used as the user-role content
+ * for LLM calls. Tagged envelopes keep the input parseable when a single
+ * call later needs to feed the prompt alongside structured feedback
+ * (e.g. a `validation_feedback` section on retry). `undefined` values are
+ * skipped, allowing callers to optionally include tags.
+ */
 export function toTaggedMessage(values: TaggedValues): string {
   const sections: string[] = [];
   for (const [key, value] of Object.entries(values)) {
@@ -10,6 +19,12 @@ export function toTaggedMessage(values: TaggedValues): string {
   return sections.join("\n");
 }
 
+/**
+ * Extract the contents of the first `<tag>...</tag>` section in `text`.
+ * Returns the trimmed text unchanged when the section is missing, which
+ * makes the function safe to call against model output that may or may
+ * not have echoed the tag.
+ */
 export function extractTaggedSection(text: string, tag: string): string {
   const startTag = `<${tag}>`;
   const endTag = `</${tag}>`;

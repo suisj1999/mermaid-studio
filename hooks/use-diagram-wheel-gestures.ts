@@ -13,6 +13,17 @@ type SafariGestureEvent = Event & {
   clientY: number;
 };
 
+/**
+ * Attach wheel/gesture listeners to the diagram layer:
+ * - Ctrl/Meta + wheel → zoom (trackpad pinch on macOS arrives this way)
+ * - plain wheel → pan if it looks like a trackpad, zoom otherwise
+ * - Safari non-standard `gesturestart`/`gesturechange`/`gestureend` events
+ *   for OS-level pinch gestures
+ *
+ * Coexists with pointer gestures: when a touch pointer is active, Safari's
+ * gesture events are ignored. Window blur resets accumulated wheel state
+ * so an unfocused tab doesn't zoom on return.
+ */
 export function useDiagramWheelGestures({
   enabled,
   layerRef,

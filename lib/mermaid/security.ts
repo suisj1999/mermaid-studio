@@ -114,6 +114,18 @@ export function sanitizeMermaidSourceForRender(source: string): string {
  * - drop xlink:href entirely
  * - ensure rel="noopener noreferrer" on every kept link
  */
+/**
+ * Walk all `<a>` anchors inside a rendered SVG and harden them:
+ * - drop `href` and `xlink:href` for any non-https:// scheme
+ *   (javascript:, data:, mailto:, vbscript:, ...)
+ * - rewrite remaining hrefs as absolute URLs
+ * - ensure `rel="noopener noreferrer"` on every kept link
+ *
+ * Defense in depth alongside `MERMAID_SVG_SANITIZE_OPTIONS`. DOMPurify
+ * removes most XSS vectors, but Mermaid's `click` directive bypasses
+ * `securityLevel: "strict"` so the URL allowlist has to be re-enforced
+ * after render.
+ */
 export function enforceSafeMermaidLinks(root: ParentNode): void {
   for (const anchor of root.querySelectorAll("a")) {
     const rawHref =

@@ -3,13 +3,25 @@
 import { Minus, Plus, ScanSearch } from "lucide-react";
 
 interface DiagramToolbarProps {
+  /** Current zoom label to display, e.g. "100%". */
   formattedZoom: string;
+  /** When false, disables every button until the diagram is laid out. */
   isPanZoomReady: boolean;
+  /** Fit the diagram to the container, respecting readable font size. */
   onFit: () => void;
+  /** Zoom in by one `ZOOM_STEP`. */
   onZoomIn: () => void;
+  /** Zoom out by one `ZOOM_STEP`. */
   onZoomOut: () => void;
 }
 
+/**
+ * Floating zoom toolbar (zoom out / label / zoom in + fit-to-screen) for the
+ * interactive diagram. The host component owns the viewport state and the
+ * actual fit/zoom logic; this component just renders buttons with the
+ * right `data-diagram-toolbar` attribute so the parent can skip gesture
+ * detection on clicks inside it.
+ */
 export function DiagramToolbar({
   formattedZoom,
   isPanZoomReady,

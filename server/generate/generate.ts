@@ -6,12 +6,25 @@ import { readLlmConfig, type LlmConfig } from "./config";
 import { toTaggedMessage } from "./format";
 import { SYSTEM_PROMPT } from "./prompts";
 
+/**
+ * Output of `generateMermaidDiagram`: the raw Mermaid source plus the
+ * provider/model identifiers that produced it (surfaced in the UI status
+ * pill so the user knows what model they got).
+ */
 export interface GenerateResult {
   mermaid: string;
   provider: LlmConfig["provider"];
   model: string;
 }
 
+/**
+ * Orchestrator: read the LLM config, wrap the user prompt as a tagged
+ * message, dispatch to the configured provider, and extract the mermaid
+ * code block from the response.
+ *
+ * Throws when no provider is configured or when the response contains no
+ * text content — the route handler translates these into HTTP errors.
+ */
 export async function generateMermaidDiagram(
   userPrompt: string,
 ): Promise<GenerateResult> {
