@@ -53,6 +53,18 @@ const INTERACTIVE_VIEWER_PROPS = {
   tabIndex: 0,
 };
 
+// After sanitization, the source may be empty (cleared textarea) or only
+// contain a `%%{init}%%` directive / `%%` comments — Mermaid's parser throws
+// `UnknownDiagramError` on empty input. Treat those as "nothing to render"
+// rather than an error.
+function hasRenderableContent(source: string): boolean {
+  for (const line of source.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith("%%")) return true;
+  }
+  return false;
+}
+
 const Diagram = ({
   chart,
   zoomingEnabled = true,
@@ -129,6 +141,12 @@ const Diagram = ({
       try {
         const renderId = `mermaid-${Math.random().toString(36).slice(2)}`;
         const safeChart = sanitizeMermaidSourceForRender(chart);
+        if (!hasRenderableContent(safeChart)) {
+          if (cancelled) return;
+          mermaidElement.textContent = "";
+          if (renderedSvgRef) renderedSvgRef.current = null;
+          return;
+        }
         const { svg, bindFunctions } = await withDomNodesSerializingSafely(() =>
           mermaid.render(renderId, safeChart, renderTarget),
         );
