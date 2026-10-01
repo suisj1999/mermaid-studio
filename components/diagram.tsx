@@ -23,6 +23,15 @@ import { useMermaidViewport } from "~/hooks/use-mermaid-viewport";
 import { useEffectEvent } from "~/hooks/use-effect-event";
 import { cn } from "~/lib/utils";
 
+// Mermaid attaches a `window.addEventListener("load", ...)` at import time
+// that auto-renders any `.mermaid` element. Disabling it synchronously, before
+// the `load` event can fire, keeps React's hydration in charge of the `.mermaid`
+// div until the controlled render in useEffect runs. Without this guard, mermaid
+// mutates the DOM during hydration and React reports a mismatch.
+if (typeof window !== "undefined") {
+  mermaid.initialize({ startOnLoad: false });
+}
+
 interface DiagramProps {
   chart: string;
   zoomingEnabled?: boolean;
