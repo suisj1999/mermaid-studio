@@ -275,10 +275,15 @@ export default function Page() {
         </div>
       </header>
 
-      {/* Workspace: preview fills, editor floats over it */}
+      {/* Workspace: editor pushes the preview right when open on sm+ viewports */}
       <div className="relative flex-1 min-h-0 overflow-hidden p-3 pt-3 sm:p-4 sm:pt-4">
-        {/* Preview canvas - fills the entire workspace */}
-        <div className="neo-panel absolute inset-3 overflow-hidden rounded-lg sm:inset-4">
+        {/* Preview canvas - shrinks to make room for the editor when expanded on sm+ */}
+        <div
+          className={cn(
+            "neo-panel absolute inset-3 overflow-hidden rounded-lg transition-[left] duration-300 ease-out sm:top-4 sm:right-4 sm:bottom-4",
+            panelOpen ? "sm:left-[calc(28rem+1rem)]" : "sm:left-4",
+          )}
+        >
           <Diagram
             chart={deferredSource}
             renderedSvgRef={renderedSvgRef}
@@ -320,12 +325,12 @@ export default function Page() {
               <div className="neo-button-muted inline-flex items-center overflow-hidden rounded-md">
                 <button
                   type="button"
-                  onClick={() => void handleCopy("themed")}
+                  onClick={() => void handleCopy("raw")}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold"
-                  aria-label="Copy source with studio theme"
-                  title="Copies code with a %%{init}%% directive so the diagram keeps this studio's look in any Mermaid renderer."
+                  aria-label="Copy Mermaid source"
+                  title="Copies the raw Mermaid source to the clipboard."
                 >
-                  {copied === "themed" ? (
+                  {copied === "raw" ? (
                     <>
                       <Check size={12} strokeWidth={2.75} />
                       Copied
@@ -363,27 +368,27 @@ export default function Page() {
                   <button
                     type="button"
                     role="menuitem"
-                    onClick={() => void handleCopy("themed")}
-                    className="flex w-full flex-col gap-0.5 border-b-[2px] border-black px-3 py-2 text-left text-xs transition-colors hover:bg-black/5 dark:border-[#1a0d30]"
-                  >
-                    <span className="font-bold text-black dark:text-[hsl(var(--neo-ink))]">
-                      With studio theme
-                    </span>
-                    <span className="text-[10px] text-[hsl(var(--neo-muted))] dark:text-[hsl(var(--neo-muted))]">
-                      {"Includes %%{init}%% directive"}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
                     onClick={() => void handleCopy("raw")}
-                    className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs transition-colors hover:bg-black/5"
+                    className="flex w-full flex-col gap-0.5 border-b-[2px] border-black px-3 py-2 text-left text-xs transition-colors hover:bg-black/5 dark:border-[#1a0d30]"
                   >
                     <span className="font-bold text-black dark:text-[hsl(var(--neo-ink))]">
                       Code only
                     </span>
                     <span className="text-[10px] text-[hsl(var(--neo-muted))] dark:text-[hsl(var(--neo-muted))]">
                       Raw Mermaid, no theme
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void handleCopy("themed")}
+                    className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs transition-colors hover:bg-black/5"
+                  >
+                    <span className="font-bold text-black dark:text-[hsl(var(--neo-ink))]">
+                      With studio theme
+                    </span>
+                    <span className="text-[10px] text-[hsl(var(--neo-muted))] dark:text-[hsl(var(--neo-muted))]">
+                      {"Includes %%{init}%% directive"}
                     </span>
                   </button>
                 </div>
