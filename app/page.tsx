@@ -39,76 +39,6 @@ const DEFAULT_SOURCE = `graph TD
   D --> E[OAuth Provider]
   E --> B`;
 
-type Example = {
-  label: string;
-  category: string;
-  source: string;
-};
-
-const EXAMPLES: Example[] = [
-  {
-    label: "User login flow",
-    category: "flow",
-    source: `graph TD
-  U[User] --> L[Login Page]
-  L --> V{Validate}
-  V -->|ok| D[Dashboard]
-  V -->|fail| R[Retry]
-  R --> V`,
-  },
-  {
-    label: "Microservices + queue",
-    category: "architecture",
-    source: `graph LR
-  G[API Gateway] --> O[Order Service]
-  O --> Q[Message Queue]
-  Q --> P[Payment Service]
-  Q --> I[Inventory Service]`,
-  },
-  {
-    label: "TCP handshake",
-    category: "sequence",
-    source: `sequenceDiagram
-  participant C as Client
-  participant S as Server
-  C->>S: SYN
-  S-->>C: SYN-ACK
-  C->>S: ACK`,
-  },
-  {
-    label: "Order class hierarchy",
-    category: "class",
-    source: `classDiagram
-  class Order {
-    +id: string
-    +total: number
-    +pay() bool
-  }
-  class OnlineOrder
-  class InStoreOrder
-  Order <|-- OnlineOrder
-  Order <|-- InStoreOrder`,
-  },
-  {
-    label: "State machine",
-    category: "state",
-    source: `stateDiagram-v2
-  [*] --> Draft
-  Draft --> Review: submit
-  Review --> Approved
-  Review --> Draft: request changes
-  Approved --> [*]`,
-  },
-  {
-    label: "ER: blog schema",
-    category: "er",
-    source: `erDiagram
-  USER ||--o{ POST : writes
-  POST ||--o{ COMMENT : has
-  USER ||--o{ COMMENT : writes`,
-  },
-];
-
 function Logo() {
   return (
     <div className="flex items-center gap-3">
@@ -194,42 +124,8 @@ function StatPill({
   );
 }
 
-function ExampleCard({
-  example,
-  onSelect,
-  active,
-}: {
-  example: Example;
-  onSelect: () => void;
-  active: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "neo-chip group inline-flex items-center justify-between rounded-md px-3 py-1.5 text-left text-[12px]",
-        active && "translate-x-[-1px] translate-y-[-1px] shadow-[3px_3px_0_0_#000]",
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <span className="font-semibold text-black">{example.label}</span>
-        <span className="rounded-sm border border-black/30 bg-black/10 px-1 text-[9px] font-bold tracking-wider text-black uppercase">
-          {example.category}
-        </span>
-      </div>
-      <ChevronRight
-        size={12}
-        strokeWidth={2.75}
-        className="transition-transform group-hover:translate-x-0.5"
-      />
-    </button>
-  );
-}
-
 export default function Page() {
   const [source, setSource] = useState(DEFAULT_SOURCE);
-  const [activeExample, setActiveExample] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -266,11 +162,6 @@ export default function Page() {
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [copyMenuOpen]);
-
-  const handleSelectExample = (example: Example) => {
-    setSource(example.source);
-    setActiveExample(example.label);
-  };
 
   const handleCopy = async (mode: "themed" | "raw") => {
     const text =
@@ -312,7 +203,6 @@ export default function Page() {
       if (data.error) throw new Error(data.error);
       if (data.mermaid) {
         setSource(data.mermaid);
-        setActiveExample(null);
       }
       if (data.provider && data.model) {
         setModelInfo({ provider: data.provider, model: data.model });
@@ -373,16 +263,7 @@ export default function Page() {
             </button>
           </div>
           <a
-            href="https://mermaid.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="neo-button-muted hidden h-10 items-center gap-1.5 rounded-md px-3 text-xs font-semibold sm:inline-flex"
-          >
-            Mermaid docs
-            <ExternalLink size={12} strokeWidth={2.5} />
-          </a>
-          <a
-            href="https://github.com/ahmedkhaleel2004/gitdiagram"
+            href="https://github.com"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"
@@ -489,7 +370,7 @@ export default function Page() {
                       With studio theme
                     </span>
                     <span className="text-[10px] text-[hsl(var(--neo-muted))] dark:text-[hsl(var(--neo-muted))]">
-                      Includes %%{init}%% directive
+                      {"Includes %%{init}%% directive"}
                     </span>
                   </button>
                   <button
@@ -515,10 +396,7 @@ export default function Page() {
             <textarea
               ref={textareaRef}
               value={source}
-              onChange={(e) => {
-                setSource(e.target.value);
-                setActiveExample(null);
-              }}
+              onChange={(e) => setSource(e.target.value)}
               spellCheck={false}
               autoCorrect="off"
               autoCapitalize="off"
@@ -528,22 +406,6 @@ export default function Page() {
           </div>
 
           {/* Examples strip */}
-          <div className="border-t-[3px] border-black px-4 py-3 dark:border-[#1a0d30]">
-            <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-[hsl(var(--neo-soft-text))] uppercase">
-              Try these examples
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {EXAMPLES.map((example) => (
-                <ExampleCard
-                  key={example.label}
-                  example={example}
-                  active={activeExample === example.label}
-                  onSelect={() => handleSelectExample(example)}
-                />
-              ))}
-            </div>
-          </div>
-
           {/* Generator card */}
           <div className="border-t-[3px] border-black p-4 dark:border-[#1a0d30]">
             <div className="mb-2.5 flex items-center gap-2">
