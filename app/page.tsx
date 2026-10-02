@@ -62,9 +62,6 @@ function Logo() {
         <span className="text-[15px] font-bold tracking-tight">
           Mermaid Studio
         </span>
-        <span className="text-[10px] font-semibold tracking-[0.16em] text-[hsl(var(--neo-soft-text))] uppercase">
-          describe · generate · render
-        </span>
       </div>
     </div>
   );
