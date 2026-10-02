@@ -24,7 +24,10 @@ import { useTheme } from "next-themes";
 import { useRouter, useSearchParams } from "next/navigation";
 import Diagram from "~/components/diagram";
 import { downloadPng, downloadSvg } from "~/lib/download";
-import { buildMermaidInitDirective } from "~/lib/mermaid/config";
+import {
+  buildMermaidInitDirective,
+  getMermaidThemeVariables,
+} from "~/lib/mermaid/config";
 import { cn } from "~/lib/utils";
 import {
   DEFAULT_STYLE_ID,
@@ -152,13 +155,17 @@ export default function NewspaperPage() {
   const handleDownloadSvg = () => {
     const svg = renderedSvgRef.current;
     if (!svg) return;
-    downloadSvg(svg, "diagram.svg");
+    downloadSvg(svg, "diagram.svg", {
+      backgroundColor: getMermaidThemeVariables(isDark).background,
+    });
   };
 
   const handleDownloadPng = () => {
     const svg = renderedSvgRef.current;
     if (!svg) return;
-    void downloadPng(svg, "diagram.png");
+    void downloadPng(svg, "diagram.png", {
+      backgroundColor: getMermaidThemeVariables(isDark).background,
+    });
   };
 
   const handleGenerate = async () => {
