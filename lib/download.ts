@@ -75,10 +75,32 @@ export function getSvgDimensions(svg: SVGSVGElement) {
 }
 
 /**
- * Clone the SVG with its own xmlns, viewBox, and explicit pixel size. Strips
- * inline `width`/`height`/`max-width`/`transform` first — those reflect the
- * host page's layout and would otherwise shrink the rasterized output below
- * the chosen scale. `scale = 1` keeps the SVG at intrinsic size.
+ * Pixels per diagram unit at the export resolution. Shared by the SVG's
+ * `width`/`height` attributes and the canvas size so the rasterizer paints
+ * the viewBox 1:1 — the SVG's intrinsic dimensions are what `<img>` hands
+ * to the canvas, so any mismatch shows up as a one-pixel blur on a side.
+ */
+function exportPixelSize(width: number, height: number, scale: number) {
+  return {
+    width: Math.max(1, Math.floor(width * scale)),
+    height: Math.max(1, Math.floor(height * scale)),
+  };
+}
+
+/**
+ * Clone the SVG with its own xmlns, viewBox, and explicit pixel size.
+ *
+ * `cloneNode(true)` is the load-bearing step: it preserves the `<style>`
+ * block, every class attribute, inline `style=""` rules, the Mermaid-generated
+ * `id` (which the embedded `<style>` block scopes its selectors by), and any
+ * `<defs>` such as drop-shadow filters. Strip any of these and the exported
+ * file silently loses class-based fills (`classDef important fill:#e94560`
+ * stops working) because the CSS in `<style>` no longer matches anything.
+ *
+ * The inline `style.width`/`style.height`/`style.max-width`/`style.transform`
+ * properties on the root element reflect the host page's layout and are
+ * dropped so they don't shrink the rasterized output below the chosen scale.
+ * `scale = 1` keeps the SVG at its intrinsic size.
  */
 function standaloneSvg(
   svg: SVGSVGElement,
@@ -95,8 +117,13 @@ function standaloneSvg(
   }
   clone.setAttribute("xmlns", SVG_NS);
   clone.setAttribute("xmlns:xlink", XLINK_NS);
-  clone.setAttribute("width", String(Math.ceil(width * scale)));
-  clone.setAttribute("height", String(Math.ceil(height * scale)));
+  const { width: pixelWidth, height: pixelHeight } = exportPixelSize(
+    width,
+    height,
+    scale,
+  );
+  clone.setAttribute("width", String(pixelWidth));
+  clone.setAttribute("height", String(pixelHeight));
   return clone;
 }
 
@@ -196,8 +223,13 @@ export async function downloadPng(
         img.src = url;
       });
       const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.floor(width * scale));
-      canvas.height = Math.max(1, Math.floor(height * scale));
+      const { width: pixelWidth, height: pixelHeight } = exportPixelSize(
+        width,
+        height,
+        scale,
+      );
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Canvas 2D context unavailable");
       ctx.fillStyle = options?.backgroundColor ?? "white";
