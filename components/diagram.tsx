@@ -75,6 +75,48 @@ function hasRenderableContent(source: string): boolean {
   return false;
 }
 
+// First word of a diagram must be one of these for Mermaid to recognize it.
+// Anything else (e.g. a stray prose sentence typed into the editor) is treated
+// as "no diagram" — we clear the preview instead of letting Mermaid throw
+// `UnknownDiagramError` into the console.
+const MERMAID_TYPE_STARTERS = [
+  "graph",
+  "flowchart",
+  "sequencediagram",
+  "classdiagram",
+  "statediagram",
+  "statediagram-v2",
+  "erdiagram",
+  "journey",
+  "gantt",
+  "pie",
+  "quadrantchart",
+  "requirementdiagram",
+  "gitgraph",
+  "mindmap",
+  "timeline",
+  "zenuml",
+  "sankey",
+  "xychart",
+  "block",
+  "packet",
+  "kanban",
+  "architecture",
+  "radar",
+] as const;
+
+function looksLikeMermaidDiagram(source: string): boolean {
+  for (const rawLine of source.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith("%%")) continue;
+    const firstWord = line.split(/\s+/, 1)[0]?.toLowerCase();
+    if (!firstWord) return false;
+    return (MERMAID_TYPE_STARTERS as readonly string[]).includes(firstWord);
+  }
+  return false;
+}
+
 /**
  * Controlled Mermaid renderer.
  *
@@ -162,7 +204,10 @@ const Diagram = ({
       try {
         const renderId = `mermaid-${Math.random().toString(36).slice(2)}`;
         const safeChart = sanitizeMermaidSourceForRender(chart);
-        if (!hasRenderableContent(safeChart)) {
+        if (
+          !hasRenderableContent(safeChart) ||
+          !looksLikeMermaidDiagram(safeChart)
+        ) {
           if (cancelled) return;
           mermaidElement.textContent = "";
           if (renderedSvgRef) renderedSvgRef.current = null;
@@ -235,7 +280,7 @@ const Diagram = ({
       )}
     >
       {renderMessage && (
-        <div className="neo-stamp mb-3 rounded-md border-2 border-amber-700 bg-amber-100 px-3 py-2 text-[12px] text-amber-950">
+        <div className="surface-stamp mb-3 rounded-md border-2 border-amber-700 bg-amber-100 px-3 py-2 text-[12px] text-amber-950">
           {renderMessage}
         </div>
       )}
@@ -250,7 +295,7 @@ const Diagram = ({
             : "touch-pan-x touch-pan-y touch-pinch-zoom",
           (zoomingEnabled || fitToContainer) && "overflow-hidden",
           zoomingEnabled &&
-            "cursor-grab rounded-md border-2 border-black bg-[hsl(var(--neo-panel-muted))] select-none data-[dragging=true]:cursor-grabbing dark:border-[#1a0d30] [&_*]:select-none",
+            "surface-interactive-layer cursor-grab rounded-md select-none data-[dragging=true]:cursor-grabbing [&_*]:select-none",
         )}
         onClickCapture={handleClickCapture}
         onDragStart={handleDragStart}

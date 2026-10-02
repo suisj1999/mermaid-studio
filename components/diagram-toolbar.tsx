@@ -34,7 +34,7 @@ export function DiagramToolbar({
       data-diagram-toolbar
       className="pointer-events-none absolute top-4 right-4 z-10 flex items-center gap-2"
     >
-      <div className="neo-button-muted pointer-events-auto inline-flex items-center overflow-hidden rounded-md">
+      <div className="surface-button-muted pointer-events-auto inline-flex items-center overflow-hidden rounded-md">
         <button
           type="button"
           aria-label="Zoom out"
@@ -60,7 +60,7 @@ export function DiagramToolbar({
       <button
         type="button"
         disabled={!isPanZoomReady}
-        className="neo-button-muted pointer-events-auto inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[10px] font-bold tracking-[0.16em] text-black uppercase active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-50 dark:text-[#0d0a19]"
+        className="surface-button-muted pointer-events-auto inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[10px] font-bold tracking-[0.16em] text-black uppercase active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0_0_#000] disabled:cursor-not-allowed disabled:opacity-50 dark:text-[#0d0a19]"
         onClick={onFit}
       >
         <ScanSearch size={14} strokeWidth={2.75} />

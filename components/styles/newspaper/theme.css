@@ -1,0 +1,79 @@
+:root {
+  --paper-bg: 32 30% 92%;
+  --paper-panel: 32 35% 96%;
+  --paper-card: 30 25% 89%;
+  --paper-ink: 22 35% 14%;
+  --paper-muted: 22 15% 42%;
+  --paper-faint: 22 12% 55%;
+  --paper-accent: 16 65% 46%;
+  --paper-accent-soft: 16 55% 60%;
+  --paper-rule: 30 20% 78%;
+  --paper-rule-strong: 22 25% 35%;
+}
+
+.dark {
+  --paper-bg: 22 18% 9%;
+  --paper-panel: 22 18% 12%;
+  --paper-card: 22 16% 15%;
+  --paper-ink: 32 28% 88%;
+  --paper-muted: 32 12% 62%;
+  --paper-faint: 32 8% 48%;
+  --paper-accent: 16 55% 58%;
+  --paper-accent-soft: 16 45% 70%;
+  --paper-rule: 22 18% 24%;
+  --paper-rule-strong: 22 15% 45%;
+}
+
+@layer components {
+  /* Aliases for shared <Diagram /> and <DiagramToolbar />. */
+
+  .surface-stamp {
+    border: 1px solid hsl(var(--paper-rule-strong));
+    border-left: 3px solid hsl(var(--paper-accent));
+    background: hsl(var(--paper-panel));
+    color: hsl(var(--paper-ink));
+    border-radius: 0;
+  }
+
+  .surface-button-muted {
+    border: 1px solid hsl(var(--paper-rule));
+    background: hsl(var(--paper-panel));
+    color: hsl(var(--paper-ink));
+    border-radius: 0;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .dark .surface-button-muted {
+    background: hsl(var(--paper-panel));
+    border-color: hsl(var(--paper-rule));
+    color: hsl(var(--paper-ink));
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .surface-button-muted:hover:not(:disabled) {
+      background: hsl(var(--paper-card));
+      border-color: hsl(var(--paper-rule-strong));
+    }
+  }
+
+  .surface-button-muted:active:not(:disabled) {
+    background: hsl(var(--paper-card));
+  }
+
+  .surface-interactive-layer {
+    /* Used by shared <Diagram />'s pan/zoom layer. Transparent so it
+       inherits the surrounding paper background; hairline border only. */
+    border: 1px solid hsl(var(--paper-rule));
+    background: transparent;
+    border-radius: 0;
+  }
+}
+
+@layer base {
+  body {
+    background-color: hsl(var(--paper-bg));
+    color: hsl(var(--paper-ink));
+  }
+}
