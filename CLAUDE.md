@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Mermaid Studio — a Next.js 15 (app router) + React 19 + TypeScript app for editing Mermaid diagrams or generating them from a plain-language description via an LLM. Neo-brutalist UI, light/dark themed, pan/zoom interactive preview.
+Mermaid Studio — a Next.js 15 (app router) + React 19 + TypeScript app for editing Mermaid diagrams or generating them from a plain-language description via an LLM. UI is selectable per visit via `?ui-style=<id>` (default: `neo-brutalism`; `newspaper` is the second style). Light/dark themed, pan/zoom interactive preview.
 
 ## Commands
 
@@ -13,11 +13,11 @@ bun install          # (bun.lock present, project uses bun)
 bun run dev          # next dev
 bun run build        # next build
 bun run start        # next start
-bun run lint         # next lint (Next's ESLint config)
-bun run typecheck    # tsc --noEmit (strict mode, no test runner configured)
+bun run typecheck    # tsc --noEmit (strict mode)
+bun run test         # bun test (built-in runner; tests live in ./test/*.test.ts)
 ```
 
-There is no test runner — verification is `lint` + `typecheck` + manual browser check against `bun run dev`.
+`bun run typecheck` + `bun run build` + `bun run test` are the standard pre-commit checks; UI changes need a manual browser check against `bun run dev`. Note: `bun run lint` is currently interactive (`next lint` prompts to set up ESLint) — don't depend on it.
 
 ## Environment
 
@@ -35,15 +35,25 @@ Configure one LLM provider in `.env.local` (see `.env.example`):
 
 ```
 app/
-  page.tsx                       # Single-page UI: header + editor aside + preview canvas
+  page.tsx                       # Thin router: reads ?ui-style= and delegates to <StyleRouter />
   layout.tsx                     # ThemeProvider (next-themes, class attribute, system default)
   api/generate/route.ts          # POST /api/generate — thin wrapper, maxDuration 60s
-  globals.css                    # Tailwind v4 + neo-brutalist custom utilities (--neo-* tokens)
+  globals.css                    # Tailwind v4 + dark variant + base reset only. No per-style CSS.
 
 components/
   diagram.tsx                    # Controlled Mermaid renderer; mounts viewport hook, sanitizes output
   diagram-toolbar.tsx            # Floating zoom controls; carries [data-diagram-toolbar] so gestures skip it
   diagram-helpers.ts             # Pure helpers: view clamping, SVG dimensions, wheel/pinch math
+
+  styles/                        # Multi-style UI — each style is a code-isolated Page + theme.css
+    registry.ts                  #   StyleId, STYLE_METADATA, isKnownStyleId, STYLES (next/dynamic, lazy)
+    router.tsx                   #   Client component: reads uiStyle prop, picks a Page, falls back on unknown
+    neo-brutalism/
+      Page.tsx                   #   The original UI (was app/page.tsx before the refactor)
+      theme.css                  #   --neo-* tokens + .neo-* utilities + .surface-* aliases
+    newspaper/
+      Page.tsx                   #   Editorial layout: serif masthead, hairline borders, terracotta accent
+      theme.css                  #   --paper-* tokens + .surface-* aliases
 
 hooks/
   use-mermaid-viewport.ts        # Pan/zoom lifecycle: fit, animation, ResizeObserver, key handlers
@@ -53,7 +63,7 @@ hooks/
 
 lib/
   utils.ts                       # cn() = clsx + tailwind-merge
-  download.ts                    # SVG/PNG export (SVG: serialize; PNG: canvas rasterize at 2×)
+  download.ts                    # SVG/PNG export (see "Export pipeline" below)
   mermaid/config.ts              # buildMermaidConfig(), getMermaidThemeVariables(), DOMPurify options
   mermaid/security.ts            # sanitizeMermaidSourceForRender() + enforceSafeMermaidLinks()
 
@@ -65,29 +75,65 @@ server/generate/
   constants.ts                   # MAX_OUTPUT_TOKENS=8000, MAX_GENERATE_ATTEMPTS=1, model defaults
 ```
 
-### Render pipeline (`components/diagram.tsx`)
+## URL-based style selection
+
+- `/?ui-style=neo-brutalism` (default at `/`) → neo-brutalism UI
+- `/?ui-style=newspaper` → newspaper UI
+- Anything else (including `garbage`) → silently falls back to neo-brutalism. Never 404.
+
+Implementation: `app/page.tsx` is async, awaits `searchParams["ui-style"]` (Next 15 promise-based searchParams, kebab-case key) and passes it as the `uiStyle` prop to `<StyleRouter />`. The router uses `isKnownStyleId()` to validate, then renders the matching Page from `STYLES`. `STYLES` is built with `next/dynamic` + `{ ssr: false }` so each style's CSS and JS only load when selected — initial `/` payload stays small.
+
+Each style's `Page.tsx` renders its own `StyleSwitcher` (the masthead link bar). The switcher `router.replace(...)`s to the target URL — never pushes, so the back button doesn't accumulate style swaps.
+
+## Surface-class contract
+
+The shared components (`<Diagram />`, `<DiagramToolbar />`, the pan/zoom layer) must work in **every** style without knowing about any specific style. The contract: shared code references neutral class names; each style's `theme.css` provides them.
+
+| Class | Used by | Visuals defined in |
+|---|---|---|
+| `.surface-stamp` | `<Diagram />` error banner | each style's `theme.css` |
+| `.surface-button-muted` | `<DiagramToolbar />` zoom/fit buttons | each style's `theme.css` |
+| `.surface-interactive-layer` | `<Diagram />` pan/zoom layer (border + bg) | each style's `theme.css` |
+
+`neo-brutalism/theme.css` defines these with neo visuals (thick border, offset shadow); `newspaper/theme.css` defines them with paper visuals (hairline + transparent or terracotta left rule). When adding a new style, **register it in `STYLES` first** (lazy load) and provide all three surface classes in its `theme.css`, otherwise the shared components will render unstyled in that style.
+
+## Render pipeline (`components/diagram.tsx`)
 
 1. Source flows through `sanitizeMermaidSourceForRender` (rejoins wrapped `classDef`/`style` lines, drops non-https `click` directives, strips BOM/zero-width chars).
-2. A hidden, in-DOM render target is appended (`createHiddenRenderTarget`) — Mermaid requires a measured container.
-3. `mermaid.render()` runs inside `withDomNodesSerializingSafely` which patches `Element.prototype.toJSON` so DOM nodes inside `<foreignObject>` don't blow up JSON serialization. Reference-counted for nested calls.
-4. Output SVG passes through `DOMPurify.sanitize(svg, MERMAID_SVG_SANITIZE_OPTIONS)`, then `enforceSafeMermaidLinks` re-enforces an https-only href allowlist (DOMPurify can't infer semantics of Mermaid's `click` directive).
-5. `useMermaidViewport` measures the SVG, computes a fit-scale, and wires pointer/wheel/keyboard handlers. Toolbar renders a `data-diagram-toolbar` element so gestures skip it.
+2. The source is pre-validated against `looksLikeMermaidDiagram` — if the first non-directive, non-comment word isn't a known Mermaid type starter (`graph`, `flowchart`, `sequencediagram`, …), the render is skipped and the preview is cleared. Avoids `UnknownDiagramError` console noise for prose input.
+3. A hidden, in-DOM render target is appended (`createHiddenRenderTarget`) — Mermaid requires a measured container.
+4. `mermaid.render()` runs inside `withDomNodesSerializingSafely` which patches `Element.prototype.toJSON` so DOM nodes inside `<foreignObject>` don't blow up JSON serialization. Reference-counted for nested calls.
+5. Output SVG passes through `DOMPurify.sanitize(svg, MERMAID_SVG_SANITIZE_OPTIONS)`, then `enforceSafeMermaidLinks` re-enforces an https-only href allowlist (DOMPurify can't infer semantics of Mermaid's `click` directive).
+6. `useMermaidViewport` measures the SVG, computes a fit-scale, and wires pointer/wheel/keyboard handlers. Toolbar renders a `data-diagram-toolbar` element so gestures skip it.
 
-### Hydration guard
+## Hydration guard
 
-`components/diagram.tsx:31` calls `mermaid.initialize({ startOnLoad: false })` at module load time. Without this, Mermaid's `window.addEventListener("load", ...)` auto-render fires during React hydration and causes a mismatch. Don't remove.
+`components/diagram.tsx` calls `mermaid.initialize({ startOnLoad: false })` at module load time. Without this, Mermaid's `window.addEventListener("load", ...)` auto-render fires during React hydration and causes a mismatch. Don't remove.
 
-### Pan/zoom model
+## Pan/zoom model
 
 `ViewState` (`diagram-helpers.ts`) holds `{ fitScale, scale, x, y, width, height }`. `applyViewState` writes a `translate3d(...) scale(...)` transform on the inner diagram div with `transform-origin: 0 0`. Zoom limits are `fitScale * 0.6` (min) and `Math.max(fitScale * 12, 3)` (max). `fitDiagram(animate, whole)` chooses between `fitScale` (whole=true, full container fit) and `getReadableScale` (whole=false, zooms in further while keeping ≥12 px text on labels). Animation uses cubic-ease-out over 160 ms unless `prefers-reduced-motion: reduce`.
 
-### Theming
+## Export pipeline (`lib/download.ts`)
 
-Light/dark theme variables are in `lib/mermaid/config.ts` (separate palettes). `buildMermaidInitDirective(isDark)` produces a `%%{init: ...}%%` payload used by the "With studio theme" copy option so exported source renders the same in any Mermaid renderer. `app/layout.tsx` uses `next-themes` with `attribute="class"` and `suppressHydrationWarning` on `<html>` — keep both when changing the theme wiring.
+`downloadSvg` and `downloadPng` consume the SVG already mounted in the DOM via `renderedSvgRef`. Both go through `standaloneSvg()` which `cloneNode(true)`s the SVG to preserve its embedded `<style>` block, class attributes, inline styles, Mermaid's id-scoped selectors, and `<defs>` filters, then strips the root element's inline `width`/`height`/`max-width`/`transform` (those reflect host-page layout). `downloadPng` additionally:
 
-### Styling conventions
+- Picks scale via `getPngExportScale` (`MIN(2, 16_000/width, 16_000/height, √(maxPixels/area))`) with `maxPixels` capped at 120 M on desktop, 16 M on iOS/iPadOS WebKit.
+- Bakes `options.backgroundColor` (passed as `getMermaidThemeVariables(isDark).background`) into the canvas via `ctx.fillRect` so viewBox-padding pixels don't composite as transparent in viewers.
+- Falls back to halving `scale` if `<img>.onerror` or `canvas.toBlob` returns null; final failure rejects the Promise.
+- Uses `Math.floor` (not `ceil`) for both SVG attrs and canvas size — `exportPixelSize` unifies both so `drawImage` doesn't blur the last row/column.
 
-Neo-brutalist look is built on Tailwind v4 with custom utilities (`.neo-panel`, `.neo-button`, `.neo-input`, `.neo-stamp`, `.neo-button-muted`, `.neo-panel-thin`) defined in `app/globals.css`. Dark mode uses class-based selectors against the `dark` class from `next-themes`. Use `cn()` for conditional class merging — never template-literal class strings with conditional `&&`.
+Both functions bail early (`return`) on `width <= 0 || height <= 0` and on a non-finite scale, so calling them with an unrendered or 0-size SVG is a no-op rather than an error toast.
+
+## Theming
+
+Light/dark theme variables are in `lib/mermaid/config.ts` (separate palettes). `buildMermaidInitDirective(isDark)` produces a `%%{init: ...}%%` payload used by the "Themed" copy option so exported source renders the same in any Mermaid renderer. `app/layout.tsx` uses `next-themes` with `attribute="class"` and `suppressHydrationWarning` on `<html>` — keep both when changing the theme wiring.
+
+## Styling conventions
+
+- Each style folder is **self-contained**: its `theme.css` is imported at the top of its `Page.tsx`, and its CSS variables + utility classes don't leak into other styles.
+- Tailwind v4 with `@custom-variant dark (&:where(.dark, .dark *));` (in `app/globals.css`).
+- Use `cn()` for conditional class merging — never template-literal class strings with conditional `&&`.
 
 ## Things to be careful about
 
@@ -96,3 +142,5 @@ Neo-brutalist look is built on Tailwind v4 with custom utilities (`.neo-panel`, 
 - `useEffectEvent` polyfill returns a stable callback — wrap values used inside effects that you don't want to retrigger on prop changes (see `use-mermaid-viewport.ts` for `reportRenderComplete`).
 - `MAX_GENERATE_ATTEMPTS = 1` (server/generate/constants.ts) — bumping requires structured-feedback retry logic that doesn't exist yet.
 - DOMPurify options in `MERMAID_SVG_SANITIZE_OPTIONS` allow `svgFilters` + `html` profiles (Mermaid's inline-styled labels need them) and forbid `<script>`. URL safety is enforced separately.
+- `next/dynamic` is used in `components/styles/registry.ts` to lazy-load each style's Page. Don't import a style's Page statically anywhere outside the registry — it would bundle both styles into the initial JS.
+- `downloadPng`'s default fallback is `"white"` for `backgroundColor`. Both `Page.tsx`s always pass `getMermaidThemeVariables(isDark).background`, so this fallback is dormant. Don't remove the explicit option passing when writing a third style.
