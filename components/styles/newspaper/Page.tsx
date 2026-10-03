@@ -23,6 +23,7 @@ import {
 import { useTheme } from "next-themes";
 import { useRouter, useSearchParams } from "next/navigation";
 import Diagram from "~/components/diagram";
+import { CodeEditor } from "~/components/code-editor";
 import { downloadPng, downloadSvg } from "~/lib/download";
 import {
   buildMermaidInitDirective,
@@ -126,6 +127,7 @@ export default function NewspaperPage() {
     model: string;
   } | null>(null);
   const [copied, setCopied] = useState<"themed" | "raw" | null>(null);
+  const [currentLine, setCurrentLine] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const renderedSvgRef = useRef<SVGSVGElement | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -166,6 +168,22 @@ export default function NewspaperPage() {
     void downloadPng(svg, "diagram.png", {
       backgroundColor: getMermaidThemeVariables(isDark).background,
     });
+  };
+
+  const handleSelectLine = (line: number) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const lines = source.split("\n");
+    let start = 0;
+    for (let i = 0; i < line - 1 && i < lines.length; i++) {
+      start += lines[i].length + 1;
+    }
+    const lineLength = lines[line - 1]?.length ?? 0;
+    textarea.setSelectionRange(start, start + lineLength);
+    const lineHeight =
+      parseFloat(getComputedStyle(textarea).lineHeight) || 20;
+    textarea.scrollTop = Math.max(0, (line - 3) * lineHeight);
+    setCurrentLine(line);
   };
 
   const handleGenerate = async () => {
@@ -298,19 +316,15 @@ export default function NewspaperPage() {
             </div>
 
             {/* Editor */}
-            <div className="relative flex-1 overflow-hidden">
-              <textarea
-                ref={textareaRef}
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-                className="h-full w-full resize-none bg-transparent px-5 py-4 font-mono text-[13px] leading-6 text-[hsl(var(--paper-ink))] outline-none placeholder:text-[hsl(var(--paper-faint))]"
-                placeholder="Start writing Mermaid..."
-                style={{ tabSize: 2 }}
-              />
-            </div>
+            <CodeEditor
+              ref={textareaRef}
+              value={source}
+              onChange={setSource}
+              currentLine={currentLine}
+              onCursorLineChange={setCurrentLine}
+              placeholder="Start writing Mermaid..."
+              className="flex-1"
+            />
 
             {/* Generator */}
             <div className="border-t border-[hsl(var(--paper-rule))] p-4">
@@ -389,6 +403,7 @@ export default function NewspaperPage() {
               <Diagram
                 chart={deferredSource}
                 renderedSvgRef={renderedSvgRef}
+                onSelectLine={handleSelectLine}
                 fillHeight
                 containerClassName="h-full"
               />

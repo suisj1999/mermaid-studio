@@ -69,6 +69,104 @@
     background: transparent;
     border-radius: 0;
   }
+
+  /* Code editor — gutter + syntax overlay + transparent textarea.
+     Font metrics (13px / 24px line-height) are repeated identically in
+     neo-brutalism/theme.css so the layers stay pixel-aligned in both styles. */
+
+  .surface-editor {
+    background: hsl(var(--paper-bg));
+    color: hsl(var(--paper-ink));
+  }
+
+  .surface-editor-gutter {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3rem;
+    padding: 1rem 0.75rem 1rem 0;
+    margin: 0;
+    font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 24px;
+    color: hsl(var(--paper-faint));
+    background: hsl(var(--paper-panel));
+    text-align: right;
+    user-select: none;
+    pointer-events: none;
+    overflow: hidden;
+    list-style: none;
+    border-right: 1px solid hsl(var(--paper-rule));
+  }
+
+  .surface-editor-overlay {
+    position: absolute;
+    left: 3rem;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    padding: 1rem 1.25rem;
+    margin: 0;
+    font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 24px;
+    white-space: pre;
+    pointer-events: none;
+    overflow: hidden;
+    color: hsl(var(--paper-ink));
+  }
+
+  .surface-editor-textarea {
+    position: absolute;
+    inset: 0;
+    padding: 1rem 1.25rem 1rem calc(3rem + 1.25rem);
+    margin: 0;
+    border: 0;
+    outline: 0;
+    resize: none;
+    background: transparent;
+    color: transparent;
+    caret-color: hsl(var(--paper-ink));
+    font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 24px;
+    tab-size: 2;
+  }
+
+  /* Current-line marker — editorial style uses hairline rules instead of a
+     block fill so the highlight reads as "this row was cited", not "selected". */
+  .surface-editor-current-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: hsl(var(--paper-accent) / 0.06);
+    border-top: 1px solid hsl(var(--paper-accent) / 0.4);
+    border-bottom: 1px solid hsl(var(--paper-accent) / 0.4);
+    pointer-events: none;
+    transition: top 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .surface-editor-gutter li[data-active] {
+    color: hsl(var(--paper-accent));
+    font-weight: 700;
+    font-style: italic;
+  }
+
+  /* Syntax token palette — restrained to fit the editorial aesthetic. */
+  .surface-syntax-comment { color: hsl(var(--paper-faint)); font-style: italic; }
+  .surface-syntax-string  { color: #8a4530; }
+  .surface-syntax-keyword { color: hsl(var(--paper-accent)); font-weight: 600; }
+  .surface-syntax-edge    { color: #2a5a8a; font-weight: 600; }
+  .surface-syntax-id      { color: hsl(var(--paper-ink)); }
+  .surface-syntax-shape   { color: hsl(var(--paper-rule-strong)); }
+  .surface-syntax-default { color: hsl(var(--paper-ink)); }
+
+  .dark .surface-syntax-string { color: #c46b54; }
+
+  .dark .surface-editor-current-line {
+    background: hsl(var(--paper-accent) / 0.1);
+  }
 }
 
 @layer base {

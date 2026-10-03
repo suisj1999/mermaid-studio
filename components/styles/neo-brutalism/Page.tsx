@@ -30,6 +30,7 @@ import {
 import { useTheme } from "next-themes";
 import { useRouter, useSearchParams } from "next/navigation";
 import Diagram from "~/components/diagram";
+import { CodeEditor } from "~/components/code-editor";
 import { downloadPng, downloadSvg } from "~/lib/download";
 import {
   buildMermaidInitDirective,
@@ -221,6 +222,7 @@ export default function NeoBrutalismPage() {
     model: string;
   } | null>(null);
   const [copied, setCopied] = useState<"themed" | "raw" | null>(null);
+  const [currentLine, setCurrentLine] = useState<number | null>(null);
   const [copyMenuOpen, setCopyMenuOpen] = useState(false);
   const copyMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -275,6 +277,22 @@ export default function NeoBrutalismPage() {
     void downloadPng(svg, "diagram.png", {
       backgroundColor: getMermaidThemeVariables(isDark).background,
     });
+  };
+
+  const handleSelectLine = (line: number) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const lines = source.split("\n");
+    let start = 0;
+    for (let i = 0; i < line - 1 && i < lines.length; i++) {
+      start += lines[i].length + 1;
+    }
+    const lineLength = lines[line - 1]?.length ?? 0;
+    textarea.setSelectionRange(start, start + lineLength);
+    const lineHeight =
+      parseFloat(getComputedStyle(textarea).lineHeight) || 20;
+    textarea.scrollTop = Math.max(0, (line - 3) * lineHeight);
+    setCurrentLine(line);
   };
 
   const handleGenerate = async () => {
@@ -379,6 +397,7 @@ export default function NeoBrutalismPage() {
           <Diagram
             chart={deferredSource}
             renderedSvgRef={renderedSvgRef}
+            onSelectLine={handleSelectLine}
             fillHeight
             containerClassName="h-full"
           />
@@ -489,18 +508,15 @@ export default function NeoBrutalismPage() {
           </div>
 
           {/* Editor */}
-          <div className="relative flex-1 overflow-hidden">
-            <textarea
-              ref={textareaRef}
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              spellCheck={false}
-              autoCorrect="off"
-              autoCapitalize="off"
-              className="h-full w-full resize-none bg-[hsl(var(--neo-input-bg))] px-5 py-4 font-mono text-[13px] leading-6 text-black outline-none placeholder:text-[hsl(var(--neo-muted))] dark:bg-[hsl(var(--neo-input-bg))] dark:text-[hsl(var(--neo-ink))]"
-              style={{ tabSize: 2 }}
-            />
-          </div>
+          <CodeEditor
+            ref={textareaRef}
+            value={source}
+            onChange={setSource}
+            currentLine={currentLine}
+            onCursorLineChange={setCurrentLine}
+            placeholder="Start writing Mermaid..."
+            className="flex-1"
+          />
 
           {/* Examples strip */}
           {/* Generator card */}
