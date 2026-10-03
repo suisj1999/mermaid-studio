@@ -21,6 +21,10 @@ import {
 } from "~/lib/mermaid/security";
 import { useMermaidViewport } from "~/hooks/use-mermaid-viewport";
 import { useEffectEvent } from "~/hooks/use-effect-event";
+import {
+  buildSourceIndex,
+  matchKnownId,
+} from "~/lib/mermaid/source-index";
 import { cn } from "~/lib/utils";
 
 // Mermaid attaches a `window.addEventListener("load", ...)` at import time
@@ -41,6 +45,12 @@ interface DiagramProps {
   onRenderError?: (message: string) => void;
   /** Called once per successful render, after the SVG has been laid out and fitted. */
   onRenderComplete?: () => void;
+  /**
+   * Called when the user clicks a node / edge in the rendered SVG with the
+   * 1-indexed source line that defines it. Wiring is opt-in — hosts that
+   * don't pass this callback render a non-interactive preview.
+   */
+  onSelectLine?: (line: number) => void;
   /** Class merged into the outer wrapper. */
   containerClassName?: string;
   /** Class merged into the inner SVG-bearing element. */
@@ -103,6 +113,11 @@ const MERMAID_TYPE_STARTERS = [
   "kanban",
   "architecture",
   "radar",
+  "c4context",
+  "c4container",
+  "c4component",
+  "c4dynamic",
+  "c4deployment",
 ] as const;
 
 function looksLikeMermaidDiagram(source: string): boolean {
@@ -133,6 +148,7 @@ const Diagram = ({
   zoomingEnabled = true,
   onRenderError,
   onRenderComplete,
+  onSelectLine,
   containerClassName,
   diagramClassName,
   backgroundColor,
@@ -266,6 +282,45 @@ const Diagram = ({
     prepareForRender,
     renderedSvgRef,
   ]);
+
+  useEffect(() => {
+    if (!onSelectLine) return;
+    const svg = diagramRef.current?.querySelector("svg");
+    if (!svg) return;
+
+    const index = buildSourceIndex(sanitizeMermaidSourceForRender(chart));
+    if (index.length === 0) return;
+    const knownIds = new Set(index.map((entry) => entry.id));
+
+    const handleClick = (event: MouseEvent) => {
+      let target = event.target as Element | null;
+      while (target && target !== svg) {
+        const id = target.getAttribute?.("id");
+        if (id) {
+          const matchedId = matchKnownId(id, knownIds);
+          if (matchedId) {
+            const entry = index.find((entry) => entry.id === matchedId);
+            if (entry) {
+              onSelectLine(entry.line);
+              return;
+            }
+          }
+        }
+        target = target.parentElement;
+      }
+    };
+
+    svg.addEventListener("click", handleClick);
+    for (const part of svg.querySelectorAll("[id]")) {
+      const id = part.getAttribute("id");
+      if (id && matchKnownId(id, knownIds)) {
+        (part as HTMLElement).style.cursor = "pointer";
+      }
+    }
+    return () => {
+      svg.removeEventListener("click", handleClick);
+    };
+  }, [chart, diagramRef, onSelectLine, renderVersion]);
 
   return (
     <div
