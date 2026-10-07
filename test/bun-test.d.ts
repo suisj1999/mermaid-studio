@@ -14,18 +14,21 @@ declare module "bun:test" {
     (name: string, fn: () => void): void;
   }
 
+  interface Matchers {
+    toBe(expected: unknown): void;
+    toEqual(expected: unknown): void;
+    toContain(expected: unknown): void;
+    toContainEqual(expected: unknown): void;
+    toMatchObject(expected: AnyRecord): void;
+    toBeUndefined(): void;
+    toBeNull(): void;
+    toBeTruthy(): void;
+    toBeFalsy(): void;
+    not: Matchers;
+  }
+
   interface Expect {
-    <T>(actual: T): {
-      toBe(expected: unknown): void;
-      toEqual(expected: unknown): void;
-      toContainEqual(expected: unknown): void;
-      toMatchObject(expected: AnyRecord): void;
-      toBeUndefined(): void;
-      toBeNull(): void;
-      toBeTruthy(): void;
-      toBeFalsy(): void;
-      not: Expect;
-    };
+    <T>(actual: T): Matchers;
   }
 
   export const test: TestHandle;
