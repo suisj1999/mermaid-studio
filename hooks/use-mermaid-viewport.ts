@@ -10,12 +10,15 @@ import {
 } from "react";
 
 import {
+  applyViewState,
   clampViewState,
   getDefaultDiagramScale,
   getDiagramFontSize,
+  getFitScale,
   getReadableScale,
   getSvgDimensions,
   getTopNodeCenterX,
+  getViewportBounds,
   getZoomLimits,
   ZOOM_STEP,
   type ViewState,
@@ -44,49 +47,6 @@ interface UseMermaidViewportOptions {
 function formatZoom(viewState: ViewState | null) {
   if (!viewState) return "100%";
   return `${Math.round((viewState.scale / viewState.fitScale) * 100)}%`;
-}
-
-function applyViewState(
-  diagramElement: HTMLDivElement | null,
-  viewState: ViewState | null,
-) {
-  if (!diagramElement) return;
-
-  if (!viewState) {
-    diagramElement.style.removeProperty("left");
-    diagramElement.style.removeProperty("position");
-    diagramElement.style.removeProperty("top");
-    diagramElement.style.removeProperty("transform");
-    diagramElement.style.removeProperty("transform-origin");
-    return;
-  }
-
-  diagramElement.style.left = "0";
-  diagramElement.style.position = "absolute";
-  diagramElement.style.top = "0";
-  diagramElement.style.transform = `translate3d(${viewState.x}px, ${viewState.y}px, 0) scale(${viewState.scale})`;
-  diagramElement.style.transformOrigin = "0 0";
-}
-
-function getViewportBounds(element: HTMLDivElement) {
-  const rect = element.getBoundingClientRect();
-  return {
-    left: rect.left + element.clientLeft,
-    top: rect.top + element.clientTop,
-    width: element.clientWidth || rect.width,
-    height: element.clientHeight || rect.height,
-  };
-}
-
-function getFitScale(
-  bounds: { width: number; height: number },
-  content: { width: number; height: number },
-  padding: number,
-) {
-  return Math.min(
-    Math.max(bounds.width - padding * 2, 1) / content.width,
-    Math.max(bounds.height - padding * 2, 1) / content.height,
-  );
 }
 
 /**

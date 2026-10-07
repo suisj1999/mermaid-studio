@@ -392,3 +392,63 @@ export function getDefaultDiagramScale({
   const scale = Math.min(containerWidth / contentWidth, 1.25);
   return Number.isFinite(scale) && scale > 0 ? scale : 1;
 }
+
+/**
+ * Write a `translate3d(...) scale(...)` transform onto the diagram container
+ * with `transform-origin: 0 0`, or strip every viewport-related inline style
+ * when `viewState` is `null` (initial mount, before the first fit).
+ */
+export function applyViewState(
+  diagramElement: HTMLDivElement | null,
+  viewState: ViewState | null,
+) {
+  if (!diagramElement) return;
+
+  if (!viewState) {
+    diagramElement.style.removeProperty("left");
+    diagramElement.style.removeProperty("position");
+    diagramElement.style.removeProperty("top");
+    diagramElement.style.removeProperty("transform");
+    diagramElement.style.removeProperty("transform-origin");
+    return;
+  }
+
+  diagramElement.style.left = "0";
+  diagramElement.style.position = "absolute";
+  diagramElement.style.top = "0";
+  diagramElement.style.transform = `translate3d(${viewState.x}px, ${viewState.y}px, 0) scale(${viewState.scale})`;
+  diagramElement.style.transformOrigin = "0 0";
+}
+
+/**
+ * Read the inner content rect of an element (the box minus the border edge).
+ *
+ * Falls back to `getBoundingClientRect()` for elements without measured
+ * `clientWidth` / `clientHeight` (e.g. detached nodes during SSR or right
+ * after creation).
+ */
+export function getViewportBounds(element: HTMLDivElement) {
+  const rect = element.getBoundingClientRect();
+  return {
+    left: rect.left + element.clientLeft,
+    top: rect.top + element.clientTop,
+    width: element.clientWidth || rect.width,
+    height: element.clientHeight || rect.height,
+  };
+}
+
+/**
+ * Smallest uniform scale at which `{ width, height }` fits inside
+ * `bounds` with `padding` pixels of gutter on every edge. Result is clamped
+ * to a positive number so it never divides by zero.
+ */
+export function getFitScale(
+  bounds: { width: number; height: number },
+  content: { width: number; height: number },
+  padding: number,
+) {
+  return Math.min(
+    Math.max(bounds.width - padding * 2, 1) / content.width,
+    Math.max(bounds.height - padding * 2, 1) / content.height,
+  );
+}

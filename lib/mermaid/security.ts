@@ -109,12 +109,6 @@ export function sanitizeMermaidSourceForRender(source: string): string {
 }
 
 /**
- * Walk the rendered SVG and clean up anchor hrefs:
- * - drop non-https schemes (javascript:, data:, vbscript:, ...)
- * - drop xlink:href entirely
- * - ensure rel="noopener noreferrer" on every kept link
- */
-/**
  * Walk all `<a>` anchors inside a rendered SVG and harden them:
  * - drop `href` and `xlink:href` for any non-https:// scheme
  *   (javascript:, data:, mailto:, vbscript:, ...)
