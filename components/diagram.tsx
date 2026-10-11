@@ -314,7 +314,7 @@ const Diagram = ({
     for (const part of svg.querySelectorAll("[id]")) {
       const id = part.getAttribute("id");
       if (id && matchKnownId(id, knownIds)) {
-        (part as HTMLElement).style.cursor = "pointer";
+        (part as SVGElement).style.cursor = "pointer";
       }
     }
     return () => {

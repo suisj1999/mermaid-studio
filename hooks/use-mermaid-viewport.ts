@@ -635,7 +635,11 @@ export function useMermaidViewport({
     zoomingEnabled,
   ]);
 
-  useEffect(
+  // Cleanup on unmount. Each handler is a `useCallback` with empty deps
+// (verified), making the deps array effectively constant — but listing them
+// keeps the call-site exhaustive so a future refactor that introduces a
+// dep doesn't silently skip cleanup.
+useEffect(
     () => () => {
       cancelViewAnimation();
       cancelViewStateFrame();
