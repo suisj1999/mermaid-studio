@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   Loader2,
   Moon,
+  Share2,
   Sparkles,
   Sun,
   Wand2,
@@ -30,12 +31,15 @@ import {
   buildMermaidInitDirective,
   getMermaidThemeVariables,
 } from "~/lib/mermaid/config";
+import { formatShareUrl } from "~/lib/share/encode";
 import { cn } from "~/lib/utils";
 import { STYLE_METADATA } from "~/components/styles/registry";
 import {
   navigateToStyle,
   useCurrentStyle,
 } from "~/components/styles/switcher";
+import { useSharedSource } from "~/hooks/use-shared-source";
+import { useToast } from "~/hooks/use-toast";
 
 const DEFAULT_SOURCE = `graph TD
   A[User] --> B{Authenticated?}
@@ -133,6 +137,10 @@ export default function NewspaperPage() {
     return { lines, chars };
   }, [source]);
 
+  const { toast, showToast } = useToast();
+  useSharedSource(setSource);
+  const currentStyle = useCurrentStyle();
+
   const handleCopy = async (mode: "themed" | "raw") => {
     const text =
       mode === "themed"
@@ -163,6 +171,31 @@ export default function NewspaperPage() {
     const textarea = textareaRef.current;
     if (!textarea) return;
     locateTextareaLine(textarea, source, line, setCurrentLine);
+  };
+
+  const handleShare = async () => {
+    const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    const url = formatShareUrl(baseUrl, currentStyle, {
+      v: 1,
+      s: source,
+      t: isDark ? "dark" : "light",
+    });
+    history.replaceState(null, "", url);
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    } catch {
+      copied = false;
+    }
+    showToast(
+      copied
+        ? { message: "Link copied to clipboard", tone: "ok" }
+        : {
+            message: url.length > 80 ? `${url.slice(0, 77)}…` : url,
+            tone: "ok",
+          },
+    );
   };
 
   const handleGenerate = async () => {
@@ -238,6 +271,15 @@ export default function NewspaperPage() {
                 className="text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))] disabled:opacity-30"
               >
                 <ImageIcon size={13} strokeWidth={1.5} />
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleShare()}
+                aria-label="Copy a shareable link to this diagram"
+                title="Copies a shareable URL to the clipboard"
+                className="text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))]"
+              >
+                <Share2 size={13} strokeWidth={1.5} />
               </button>
             </div>
           </div>
@@ -402,6 +444,16 @@ export default function NewspaperPage() {
           {panelOpen ? "<" : ">"}
         </button>
       </div>
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="surface-stamp fixed right-4 bottom-4 z-50 max-w-sm px-4 py-2.5 font-serif text-[12px] italic"
+        >
+          {toast.message}
+        </div>
+      )}
     </main>
   );
 }

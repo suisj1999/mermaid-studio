@@ -22,6 +22,7 @@ import {
   Image as ImageIcon,
   Loader2,
   Moon,
+  Share2,
   Sparkles,
   Sun,
   Wand2,
@@ -37,6 +38,7 @@ import {
   buildMermaidInitDirective,
   getMermaidThemeVariables,
 } from "~/lib/mermaid/config";
+import { formatShareUrl } from "~/lib/share/encode";
 import { cn } from "~/lib/utils";
 import {
   DEFAULT_STYLE_ID,
@@ -48,6 +50,8 @@ import {
   navigateToStyle,
   useCurrentStyle,
 } from "~/components/styles/switcher";
+import { useSharedSource } from "~/hooks/use-shared-source";
+import { useToast } from "~/hooks/use-toast";
 
 const DEFAULT_SOURCE = `graph TD
   A[User] --> B{Authenticated?}
@@ -243,6 +247,10 @@ export default function NeoBrutalismPage() {
     return { lines, chars };
   }, [source]);
 
+  const { toast, showToast } = useToast();
+  useSharedSource(setSource);
+  const currentStyle = useCurrentStyle();
+
   useEffect(() => {
     if (!copyMenuOpen) return;
     const onPointerDown = (event: MouseEvent) => {
@@ -285,6 +293,33 @@ export default function NeoBrutalismPage() {
     const textarea = textareaRef.current;
     if (!textarea) return;
     locateTextareaLine(textarea, source, line, setCurrentLine);
+  };
+
+  const handleShare = async () => {
+    const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    const url = formatShareUrl(baseUrl, currentStyle, {
+      v: 1,
+      s: source,
+      t: isDark ? "dark" : "light",
+    });
+    // Update the address bar first — even if the clipboard write fails,
+    // the recipient can copy the URL from the omnibox.
+    history.replaceState(null, "", url);
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    } catch {
+      copied = false;
+    }
+    showToast(
+      copied
+        ? { message: "Link copied to clipboard", tone: "ok" }
+        : {
+            message: url.length > 80 ? `${url.slice(0, 77)}…` : url,
+            tone: "ok",
+          },
+    );
   };
 
   const handleGenerate = async () => {
@@ -361,6 +396,18 @@ export default function NeoBrutalismPage() {
             >
               <ImageIcon size={12} strokeWidth={2.75} />
               PNG
+            </button>
+          </div>
+          <div className="neo-button-muted inline-flex items-center overflow-hidden rounded-md">
+            <button
+              type="button"
+              onClick={() => void handleShare()}
+              aria-label="Copy a shareable link to this diagram"
+              title="Copies a shareable URL to the clipboard"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold"
+            >
+              <Share2 size={12} strokeWidth={2.75} />
+              Share
             </button>
           </div>
           <a
@@ -598,6 +645,16 @@ export default function NeoBrutalismPage() {
           )}
         </button>
       </div>
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="surface-stamp fixed right-4 bottom-4 z-50 max-w-sm rounded-md px-4 py-2.5 text-[12px] font-bold tracking-tight shadow-[3px_3px_0_0_#000] dark:shadow-[3px_3px_0_0_#0d0a19]"
+        >
+          {toast.message}
+        </div>
+      )}
     </main>
   );
 }
