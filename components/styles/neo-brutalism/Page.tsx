@@ -32,6 +32,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Diagram from "~/components/diagram";
 import { CodeEditor } from "~/components/code-editor";
 import { downloadPng, downloadSvg } from "~/lib/download";
+import { locateTextareaLine } from "~/lib/editor/locate-line";
 import {
   buildMermaidInitDirective,
   getMermaidThemeVariables,
@@ -43,6 +44,10 @@ import {
   isKnownStyleId,
   type StyleId,
 } from "~/components/styles/registry";
+import {
+  navigateToStyle,
+  useCurrentStyle,
+} from "~/components/styles/switcher";
 
 const DEFAULT_SOURCE = `graph TD
   A[User] --> B{Authenticated?}
@@ -107,9 +112,7 @@ function ThemeToggle() {
 
 function StyleSwitcher() {
   const router = useRouter();
-  const params = useSearchParams();
-  const raw = params.get("ui-style");
-  const current: StyleId = isKnownStyleId(raw) ? raw : DEFAULT_STYLE_ID;
+  const current = useCurrentStyle();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -125,8 +128,7 @@ function StyleSwitcher() {
   }, [open]);
 
   const navigate = (id: StyleId) => {
-    const target = id === DEFAULT_STYLE_ID ? "/" : `/?ui-style=${id}`;
-    router.replace(target);
+    navigateToStyle(router, id);
     setOpen(false);
   };
 
@@ -282,17 +284,7 @@ export default function NeoBrutalismPage() {
   const handleSelectLine = (line: number) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    const lines = source.split("\n");
-    let start = 0;
-    for (let i = 0; i < line - 1 && i < lines.length; i++) {
-      start += lines[i].length + 1;
-    }
-    const lineLength = lines[line - 1]?.length ?? 0;
-    textarea.setSelectionRange(start, start + lineLength);
-    const lineHeight =
-      parseFloat(getComputedStyle(textarea).lineHeight) || 20;
-    textarea.scrollTop = Math.max(0, (line - 3) * lineHeight);
-    setCurrentLine(line);
+    locateTextareaLine(textarea, source, line, setCurrentLine);
   };
 
   const handleGenerate = async () => {

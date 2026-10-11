@@ -21,21 +21,21 @@ import {
   Wand2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Diagram from "~/components/diagram";
 import { CodeEditor } from "~/components/code-editor";
 import { downloadPng, downloadSvg } from "~/lib/download";
+import { locateTextareaLine } from "~/lib/editor/locate-line";
 import {
   buildMermaidInitDirective,
   getMermaidThemeVariables,
 } from "~/lib/mermaid/config";
 import { cn } from "~/lib/utils";
+import { STYLE_METADATA } from "~/components/styles/registry";
 import {
-  DEFAULT_STYLE_ID,
-  STYLE_METADATA,
-  isKnownStyleId,
-  type StyleId,
-} from "~/components/styles/registry";
+  navigateToStyle,
+  useCurrentStyle,
+} from "~/components/styles/switcher";
 
 const DEFAULT_SOURCE = `graph TD
   A[User] --> B{Authenticated?}
@@ -43,17 +43,6 @@ const DEFAULT_SOURCE = `graph TD
   B -->|no| D[Login Page]
   D --> E[OAuth Provider]
   E --> B`;
-
-function useCurrentStyle(): StyleId {
-  const params = useSearchParams();
-  const raw = params.get("ui-style");
-  return isKnownStyleId(raw) ? raw : DEFAULT_STYLE_ID;
-}
-
-function navigateToStyle(router: ReturnType<typeof useRouter>, id: StyleId) {
-  const target = id === DEFAULT_STYLE_ID ? "/" : `/?ui-style=${id}`;
-  router.replace(target);
-}
 
 function StyleSwitcher() {
   const router = useRouter();
@@ -173,17 +162,7 @@ export default function NewspaperPage() {
   const handleSelectLine = (line: number) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    const lines = source.split("\n");
-    let start = 0;
-    for (let i = 0; i < line - 1 && i < lines.length; i++) {
-      start += lines[i].length + 1;
-    }
-    const lineLength = lines[line - 1]?.length ?? 0;
-    textarea.setSelectionRange(start, start + lineLength);
-    const lineHeight =
-      parseFloat(getComputedStyle(textarea).lineHeight) || 20;
-    textarea.scrollTop = Math.max(0, (line - 3) * lineHeight);
-    setCurrentLine(line);
+    locateTextareaLine(textarea, source, line, setCurrentLine);
   };
 
   const handleGenerate = async () => {
