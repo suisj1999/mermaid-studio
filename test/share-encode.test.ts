@@ -98,7 +98,7 @@ describe("formatShareUrl", () => {
       v: 1,
       s: "graph TD",
     });
-    expect(url).toMatch(/^https:\/\/example\.com#s=v1\./);
+    expect(url).toMatch(/^https:\/\/example\.com\/#s=v1\./);
     expect(url).not.toContain("?ui-style=");
   });
 
@@ -115,7 +115,46 @@ describe("formatShareUrl", () => {
       v: 1,
       s: "graph TD",
     });
-    expect(url).toMatch(/^https:\/\/example\.com\?ui-style=newspaper#s=v1\./);
+    expect(url).toMatch(/^https:\/\/example\.com\/\?ui-style=newspaper#s=v1\./);
+  });
+
+  test("an existing ui-style param is replaced, not duplicated", () => {
+    const url = formatShareUrl(
+      "https://example.com/?ui-style=neo-brutalism",
+      "newspaper",
+      { v: 1, s: "graph TD" },
+    );
+    expect(url).toMatch(/^https:\/\/example\.com\/\?ui-style=newspaper#s=v1\./);
+    expect(url.match(/ui-style=/g)).toHaveLength(1);
+  });
+
+  test("a base URL that already carries the same style is not duplicated", () => {
+    const url = formatShareUrl(
+      "https://example.com/?ui-style=newspaper",
+      "newspaper",
+      { v: 1, s: "graph TD" },
+    );
+    expect(url).toMatch(/^https:\/\/example\.com\/\?ui-style=newspaper#s=v1\./);
+    expect(url.match(/ui-style=/g)).toHaveLength(1);
+  });
+
+  test("unrelated query params are preserved", () => {
+    const url = formatShareUrl("https://example.com/?foo=bar", "newspaper", {
+      v: 1,
+      s: "graph TD",
+    });
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get("foo")).toBe("bar");
+    expect(parsed.searchParams.get("ui-style")).toBe("newspaper");
+  });
+
+  test("the recipient's style param survives the round trip", () => {
+    const url = formatShareUrl(
+      "https://example.com/?ui-style=newspaper",
+      "newspaper",
+      { v: 1, s: "graph TD" },
+    );
+    expect(decodeFromUrl(url)?.uiStyle).toBe("newspaper");
   });
 
   test("decoding the formatted URL recovers the source", () => {

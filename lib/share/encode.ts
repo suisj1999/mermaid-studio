@@ -74,19 +74,25 @@ export function decodeShareState(input: string): ShareState | null {
 
 /**
  * Build a full shareable URL pointing at the deployed app. Default style
- * keeps the URL clean (`/` with no query); any other style appends
+ * keeps the URL clean (`/` with no query); any other style sets
  * `?ui-style=<id>` so the recipient lands on the sender's chosen UI.
+ *
+ * `baseUrl` must be absolute. Any query it already carries is preserved,
+ * and an existing `ui-style` is replaced rather than duplicated — the
+ * caller's URL usually already reflects the current style, so appending
+ * blindly would yield `?ui-style=newspaper?ui-style=newspaper`, which the
+ * receiver reads as one unknown style and silently falls back.
  */
 export function formatShareUrl(
   baseUrl: string,
   uiStyle: string | null,
   state: ShareState,
 ): string {
-  const styleQuery =
-    uiStyle && uiStyle !== "neo-brutalism"
-      ? `?ui-style=${uiStyle}`
-      : "";
-  return `${baseUrl}${styleQuery}#s=${encodeShareState(state)}`;
+  const parsed = new URL(baseUrl);
+  if (uiStyle && uiStyle !== "neo-brutalism") {
+    parsed.searchParams.set("ui-style", uiStyle);
+  }
+  return `${parsed.origin}${parsed.pathname}${parsed.search}#s=${encodeShareState(state)}`;
 }
 
 /**
