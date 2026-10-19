@@ -1,8 +1,10 @@
 /**
  * Pure: character offset where `line` (1-indexed) begins in `source`.
  *
- * Returns 0 when `line <= 1`; if `line` is past the end, returns the offset
- * of the last existing line (the caller clamps selection length to 0).
+ * Returns 0 when `line <= 1`. When `line` is past the end, the offset
+ * lands just past the last line (i.e. `source.length + 1`); the caller
+ * clamps the selection length to 0, so the browser's own clamping decides
+ * where the caret ends up.
  * Both styles share this so the line math stays in one place — adding
  * tests here is the only way to verify behavior across styles.
  */

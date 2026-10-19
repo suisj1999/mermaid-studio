@@ -61,7 +61,6 @@ export const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(
     const gutterRef = useRef<HTMLOListElement>(null);
     const markerRef = useRef<HTMLDivElement>(null);
     const internalRef = useRef<HTMLTextAreaElement>(null);
-    const valueRef = useRef(value);
     const callbackRef = useRef(onCursorLineChange);
     const imeComposingRef = useRef(false);
 
@@ -71,11 +70,8 @@ export const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(
       else if (ref) ref.current = el;
     };
 
-    // Mirror latest value / callback into refs so the document-level
+    // Mirror the latest callback into a ref so the document-level
     // selectionchange listener doesn't re-bind on every keystroke.
-    useEffect(() => {
-      valueRef.current = value;
-    }, [value]);
     useEffect(() => {
       callbackRef.current = onCursorLineChange;
     });
@@ -132,7 +128,10 @@ export const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(
         if (document.activeElement !== ta) return;
         if (imeComposingRef.current) return;
         const offset = ta.selectionStart ?? 0;
-        const line = valueRef.current.substring(0, offset).split("\n").length;
+        // Read the text off the textarea, not from a mirrored ref: the ref
+        // is synced in an effect, so it can trail the textarea by one
+        // commit and report a stale line right after a newline is typed.
+        const line = ta.value.substring(0, offset).split("\n").length;
         cb(line);
       };
       document.addEventListener("selectionchange", handler);
