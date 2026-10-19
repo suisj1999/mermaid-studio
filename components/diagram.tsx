@@ -196,6 +196,13 @@ const Diagram = ({
     onRenderError?.(message);
   });
 
+  // Stable wrapper so the click-listener effect doesn't re-subscribe every
+  // time the host re-renders (the host passes a fresh closure each time).
+  const hasSelectLine = onSelectLine !== undefined;
+  const selectLine = useEffectEvent((line: number) => {
+    onSelectLine?.(line);
+  });
+
   useEffect(() => {
     let cancelled = false;
 
@@ -284,11 +291,16 @@ const Diagram = ({
   ]);
 
   useEffect(() => {
-    if (!onSelectLine) return;
+    if (!hasSelectLine) return;
     const svg = diagramRef.current?.querySelector("svg");
     if (!svg) return;
 
-    const index = buildSourceIndex(sanitizeMermaidSourceForRender(chart));
+    // Index the *raw* source, not the sanitized one. The editor shows the
+    // user's own text, so line numbers have to line up with that text.
+    // Sanitizing first would drop `%%{init}` blocks, unsafe `click`
+    // directives and rejoin wrapped `classDef` lines — every one of those
+    // shifts the line numbering and sends the click to the wrong row.
+    const index = buildSourceIndex(chart);
     if (index.length === 0) return;
     const knownIds = new Set(index.map((entry) => entry.id));
 
@@ -301,7 +313,7 @@ const Diagram = ({
           if (matchedId) {
             const entry = index.find((entry) => entry.id === matchedId);
             if (entry) {
-              onSelectLine(entry.line);
+              selectLine(entry.line);
               return;
             }
           }
@@ -320,7 +332,7 @@ const Diagram = ({
     return () => {
       svg.removeEventListener("click", handleClick);
     };
-  }, [chart, diagramRef, onSelectLine, renderVersion]);
+  }, [chart, diagramRef, hasSelectLine, renderVersion, selectLine]);
 
   return (
     <div

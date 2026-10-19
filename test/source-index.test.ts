@@ -114,6 +114,42 @@ describe("buildSourceIndex — subgraph", () => {
   });
 });
 
+describe("buildSourceIndex — line numbers match the raw editor text", () => {
+  test("a wrapped classDef does not shift the lines of later nodes", () => {
+    // The renderer rejoins these three lines into one before handing them
+    // to Mermaid, but the editor still shows all three. The index has to
+    // be built from the raw text so the click lands on the right row.
+    const src = [
+      "graph TD",
+      "  A[User] --> B{Auth?}",
+      "classDef important",
+      "  fill:#f9f",
+      "  stroke:#333",
+      "  B --> C[Dashboard]",
+    ].join("\n");
+    expect(indexOf(buildSourceIndex(src), "C")?.line).toBe(6);
+  });
+
+  test("an init directive does not shift the lines of later nodes", () => {
+    const src = [
+      "%%{init: {'theme': 'dark'}}%%",
+      "graph TD",
+      "  A --> B",
+    ].join("\n");
+    expect(indexOf(buildSourceIndex(src), "A")?.line).toBe(3);
+  });
+
+  test("classDef bodies never register as nodes", () => {
+    const src = [
+      "graph TD",
+      "classDef important",
+      "  fill:#f9f",
+      "  stroke:#333",
+    ].join("\n");
+    expect(buildSourceIndex(src)).toEqual([]);
+  });
+});
+
 describe("matchKnownId", () => {
   test("exact split match", () => {
     expect(matchKnownId("flowchart-A-1", new Set(["A", "B"]))).toBe("A");

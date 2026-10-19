@@ -107,6 +107,7 @@ const SUBGRAPH_LINE = new RegExp(`^\\s*subgraph\\s+(${ID_CHAR})`, "u");
 export function buildSourceIndex(source: string): SourceIndexEntry[] {
   const entries: SourceIndexEntry[] = [];
   const seen = new Set<string>();
+  let lineNumber = 1;
 
   for (let i = 0; i < source.length; ) {
     const newlineIdx = source.indexOf("\n", i);
@@ -115,10 +116,10 @@ export function buildSourceIndex(source: string): SourceIndexEntry[] {
     i = lineEnd + 1;
 
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("%%")) continue;
-
-    const lineNumber = countLinesBefore(source, lineEnd);
-    pushEntry(extractFromLine(trimmed, lineNumber), entries, seen);
+    if (trimmed && !trimmed.startsWith("%%")) {
+      pushEntry(extractFromLine(trimmed, lineNumber), entries, seen);
+    }
+    lineNumber++;
   }
 
   return entries;
@@ -211,14 +212,6 @@ function pushEntry(
     seen.add(entry.id);
     entries.push(entry);
   }
-}
-
-function countLinesBefore(source: string, offset: number): number {
-  let line = 1;
-  for (let i = 0; i < offset && i < source.length; i++) {
-    if (source.charCodeAt(i) === 10) line += 1;
-  }
-  return line;
 }
 
 /**
