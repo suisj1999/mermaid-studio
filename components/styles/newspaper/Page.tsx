@@ -404,6 +404,10 @@ export default function NewspaperPage() {
                   )}
                 </button>
               </div>
+              <p className="mt-2 text-[10px] leading-snug text-[hsl(var(--paper-muted))]">
+                Your description is sent to the configured LLM provider to
+                generate the diagram. Don&apos;t paste anything sensitive.
+              </p>
               {error && (
                 <div
                   role="alert"
