@@ -66,7 +66,7 @@ function StyleSwitcher() {
             onClick={() => navigateToStyle(router, style.id)}
             aria-current={isActive ? "true" : undefined}
             className={cn(
-              "transition-colors",
+              "flex min-h-6 items-center py-1 transition-colors",
               isActive
                 ? "font-serif text-[12px] italic text-[hsl(var(--paper-accent))]"
                 : "text-[hsl(var(--paper-muted))] hover:text-[hsl(var(--paper-ink))]",
@@ -91,7 +91,7 @@ function ThemeToggle() {
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Toggle theme"
-      className="text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))]"
+      className="flex min-h-6 min-w-6 items-center justify-center text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))]"
     >
       {mounted && isDark ? (
         <Sun size={14} strokeWidth={1.5} />
@@ -227,26 +227,26 @@ export default function NewspaperPage() {
   };
 
   return (
-    <main className="flex h-screen flex-col font-serif">
+    <main className="flex max-md:h-auto min-h-screen flex-col font-serif md:h-screen">
       {/* Masthead */}
       <header className="border-b border-[hsl(var(--paper-rule))]">
-        <div className="flex items-baseline justify-between gap-6 px-6 pt-5 pb-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 px-4 pt-4 pb-3 sm:px-6 sm:pt-5">
           <div className="flex items-baseline gap-3">
-            <h1 className="font-serif text-3xl font-medium tracking-tight text-[hsl(var(--paper-ink))]">
+            <h1 className="font-serif text-2xl font-medium tracking-tight text-[hsl(var(--paper-ink))] sm:text-3xl">
               Mermaid Studio
             </h1>
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <StyleSwitcher />
             <ThemeToggle />
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--paper-rule))] px-6 py-2">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[hsl(var(--paper-rule))] px-4 py-2 sm:px-6">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <StatusLine>Editorial · Vol. I · No. 1</StatusLine>
             <StatusLine>{stats.lines} ln · {stats.chars} ch</StatusLine>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <StatusLine>{deferredSource ? "rendered" : "empty"}</StatusLine>
             {modelInfo && (
               <StatusLine>
@@ -259,7 +259,7 @@ export default function NewspaperPage() {
                 onClick={handleDownloadSvg}
                 disabled={!renderedSvgRef.current}
                 aria-label="Download SVG"
-                className="text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))] disabled:opacity-30"
+                className="inline-flex h-6 w-6 items-center justify-center text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))] disabled:opacity-30"
               >
                 <Download size={13} strokeWidth={1.5} />
               </button>
@@ -268,16 +268,16 @@ export default function NewspaperPage() {
                 onClick={handleDownloadPng}
                 disabled={!renderedSvgRef.current}
                 aria-label="Download PNG"
-                className="text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))] disabled:opacity-30"
+                className="inline-flex h-6 w-6 items-center justify-center text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))] disabled:opacity-30"
               >
                 <ImageIcon size={13} strokeWidth={1.5} />
               </button>
               <button
                 type="button"
                 onClick={() => void handleShare()}
-                aria-label="Copy a shareable link to this diagram"
+                aria-label="Share a link to this diagram"
                 title="Copies a shareable URL to the clipboard"
-                className="text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))]"
+                className="inline-flex h-6 w-6 items-center justify-center text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))]"
               >
                 <Share2 size={13} strokeWidth={1.5} />
               </button>
@@ -287,15 +287,21 @@ export default function NewspaperPage() {
       </header>
 
       {/* Workspace: 2-column editorial layout */}
-      <div className="relative flex-1 overflow-hidden">
-        <div className="flex h-full overflow-hidden border-l border-r border-b border-[hsl(var(--paper-rule))]">
+      <div className="relative flex-1 overflow-hidden max-md:overflow-visible">
+        <div className="flex h-full max-md:h-auto max-md:flex-col max-md:overflow-visible border-l border-r border-b border-[hsl(var(--paper-rule))]">
           {/* Editor column */}
           <aside
             id="editor-panel"
             aria-label="Editor"
             className={cn(
-              "flex w-[min(28rem,100%)] shrink-0 flex-col overflow-hidden border-r border-[hsl(var(--paper-rule))] bg-[hsl(var(--paper-panel))] transition-[width] duration-300 ease-out",
-              !panelOpen && "w-0 border-r-0",
+              "flex shrink-0 flex-col overflow-hidden border-r border-[hsl(var(--paper-rule))] bg-[hsl(var(--paper-panel))] transition-[width,height] duration-300 ease-out",
+              // Below md the panes stack, so the editor collapses by height
+              // there and by width from md up. Only one height utility is
+              // emitted per state: same-variant Tailwind order is not
+              // guaranteed to put `h-0` after `h-1/2`.
+              panelOpen
+                ? "w-[min(28rem,100%)] max-md:w-full max-md:h-auto"
+                : "w-0 border-r-0 max-md:h-0",
             )}
           >
             {/* Filename bar */}
@@ -312,7 +318,7 @@ export default function NewspaperPage() {
                   onClick={() => void handleCopy("raw")}
                   aria-label="Copy raw Mermaid source"
                   className={cn(
-                    "transition-colors",
+                    "inline-flex min-h-6 items-center justify-center transition-colors",
                     copied === "raw"
                       ? "font-serif text-[12px] italic text-[hsl(var(--paper-accent))]"
                       : "text-[hsl(var(--paper-muted))] hover:text-[hsl(var(--paper-ink))]",
@@ -325,7 +331,7 @@ export default function NewspaperPage() {
                   onClick={() => void handleCopy("themed")}
                   aria-label="Copy Mermaid source with studio theme"
                   className={cn(
-                    "transition-colors",
+                    "inline-flex min-h-6 items-center justify-center transition-colors",
                     copied === "themed"
                       ? "font-serif text-[12px] italic text-[hsl(var(--paper-accent))]"
                       : "text-[hsl(var(--paper-muted))] hover:text-[hsl(var(--paper-ink))]",
@@ -344,7 +350,8 @@ export default function NewspaperPage() {
               currentLine={currentLine}
               onCursorLineChange={setCurrentLine}
               placeholder="Start writing Mermaid..."
-              className="flex-1"
+              ariaLabel="Mermaid source"
+              className="flex-1 max-md:h-56 max-md:flex-none"
             />
 
             {/* Generator */}
@@ -365,6 +372,7 @@ export default function NewspaperPage() {
                   }
                 }}
                 placeholder="e.g. user login flow with OAuth and retry"
+                aria-label="Describe the diagram to generate"
                 rows={2}
                 disabled={isGenerating}
                 className="w-full resize-none border border-[hsl(var(--paper-rule))] bg-[hsl(var(--paper-bg))] px-3 py-2 font-sans text-[13px] text-[hsl(var(--paper-ink))] outline-none placeholder:text-[hsl(var(--paper-faint))] focus:border-[hsl(var(--paper-rule-strong))] disabled:opacity-60"
@@ -397,7 +405,10 @@ export default function NewspaperPage() {
                 </button>
               </div>
               {error && (
-                <div className="surface-stamp mt-3 flex items-start gap-2 px-3 py-2 text-[11px]">
+                <div
+                  role="alert"
+                  className="surface-stamp mt-3 flex items-start gap-2 px-3 py-2 text-[11px]"
+                >
                   <span className="font-serif text-[10px] tracking-[0.18em] text-[hsl(var(--paper-accent))] uppercase">
                     Error
                   </span>
@@ -410,7 +421,10 @@ export default function NewspaperPage() {
           {/* Preview column */}
           <section
             aria-label="Diagram preview"
-            className="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--paper-bg))]"
+            className={cn(
+              "flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--paper-bg))]",
+              panelOpen ? "max-md:h-[45vh] max-md:flex-none" : "max-md:h-[70vh] max-md:flex-none",
+            )}
           >
             <div className="flex items-center justify-between border-b border-[hsl(var(--paper-rule))] px-4 py-2">
               <span className="font-serif text-[12px] italic text-[hsl(var(--paper-muted))]">
@@ -439,7 +453,7 @@ export default function NewspaperPage() {
           aria-label={panelOpen ? "Collapse editor" : "Expand editor"}
           aria-expanded={panelOpen}
           aria-controls="editor-panel"
-          className="absolute top-1/2 left-1 z-30 -translate-y-1/2 px-2 py-2 text-[14px] tracking-[0.22em] uppercase text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))] md:left-2"
+          className="absolute top-1/2 left-1 z-30 inline-flex min-h-6 min-w-6 -translate-y-1/2 items-center justify-center px-2 py-2 text-[14px] tracking-[0.22em] uppercase text-[hsl(var(--paper-muted))] transition-colors hover:text-[hsl(var(--paper-ink))] md:left-2 max-md:top-auto max-md:bottom-2 max-md:left-2 max-md:translate-y-0"
         >
           {panelOpen ? "<" : ">"}
         </button>

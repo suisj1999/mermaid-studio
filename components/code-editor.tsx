@@ -25,6 +25,13 @@ export interface CodeEditorProps {
   onCursorLineChange?: (line: number) => void;
   className?: string;
   placeholder?: string;
+  /**
+   * Accessible name for the textarea. A placeholder is not a label: browsers
+   * and screen readers fall back to it, which exposes the example text
+   * ("Start writing Mermaid...") as the field's name and reads as pre-filled
+   * content to assistive tech.
+   */
+  ariaLabel?: string;
 }
 
 // Padding-top + line-height must match `.surface-editor-overlay` (and the
@@ -54,6 +61,7 @@ export const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(
       onCursorLineChange,
       className,
       placeholder,
+      ariaLabel,
     },
     ref,
   ) {
@@ -198,6 +206,7 @@ export const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(
           autoCorrect="off"
           autoCapitalize="off"
           placeholder={placeholder}
+          aria-label={ariaLabel}
           style={{ tabSize: 2 }}
           className="surface-editor-textarea"
         />

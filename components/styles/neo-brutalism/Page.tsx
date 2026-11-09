@@ -62,13 +62,13 @@ const DEFAULT_SOURCE = `graph TD
 
 function Logo() {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex shrink-0 items-center gap-3">
       <div className="grid h-10 w-10 place-items-center rounded-md border-[2px] border-black bg-[hsl(var(--neo-button))] text-black shadow-[3px_3px_0_0_#000] dark:border-[#1a0d30] dark:shadow-[3px_3px_0_0_#0d0a19]">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
           height="20"
-          viewBox="0 24 24"
+          viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2.5"
@@ -80,9 +80,9 @@ function Logo() {
         </svg>
       </div>
       <div className="flex flex-col leading-none">
-        <span className="text-[15px] font-bold tracking-tight">
+        <h1 className="text-[15px] font-bold tracking-tight">
           Mermaid Studio
-        </span>
+        </h1>
       </div>
     </div>
   );
@@ -146,7 +146,7 @@ function StyleSwitcher() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Change UI style"
+        aria-label={`Change UI style, currently ${currentName}`}
         className="neo-button-muted inline-flex h-10 items-center gap-1.5 px-3 text-[10px] font-bold tracking-[0.14em] uppercase"
       >
         {currentName}
@@ -351,11 +351,11 @@ export default function NeoBrutalismPage() {
   };
 
   return (
-    <main className="flex h-screen flex-col">
+    <main className="flex max-sm:h-auto min-h-screen flex-col sm:h-screen">
       {/* Header */}
-      <header className="neo-panel-thin m-3 mb-0 flex items-center justify-between rounded-lg px-4 py-2.5 sm:m-4 sm:mb-0 sm:px-5">
+      <header className="neo-panel-thin m-3 mb-0 flex items-center justify-between gap-3 rounded-lg px-4 py-2.5 sm:m-4 sm:mb-0 sm:px-5">
         <Logo />
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <StatPill
             icon={
               <span
@@ -402,7 +402,7 @@ export default function NeoBrutalismPage() {
             <button
               type="button"
               onClick={() => void handleShare()}
-              aria-label="Copy a shareable link to this diagram"
+              aria-label="Share a link to this diagram"
               title="Copies a shareable URL to the clipboard"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold"
             >
@@ -411,7 +411,7 @@ export default function NeoBrutalismPage() {
             </button>
           </div>
           <a
-            href="https://github.com"
+            href="https://github.com/suisj1999/mermaid-studio"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"
@@ -424,12 +424,13 @@ export default function NeoBrutalismPage() {
         </div>
       </header>
 
-      {/* Workspace: editor pushes the preview right when open on sm+ viewports */}
-      <div className="relative flex-1 min-h-0 overflow-hidden p-3 pt-3 sm:p-4 sm:pt-4">
+      {/* Workspace: below sm the two panes stack (preview above the editor);
+          from sm up the editor floats over the preview and can be collapsed. */}
+      <div className="relative flex flex-1 min-h-0 flex-col gap-3 overflow-hidden p-3 pt-3 max-sm:overflow-visible sm:gap-0 sm:p-4 sm:pt-4">
         {/* Preview canvas - shrinks to make room for the editor when expanded on sm+ */}
         <div
           className={cn(
-            "neo-panel absolute inset-3 overflow-hidden rounded-lg transition-[left] duration-300 ease-out sm:top-4 sm:right-4 sm:bottom-4",
+            "neo-panel relative max-sm:h-[45vh] max-sm:flex-none overflow-hidden rounded-lg transition-[left] duration-300 ease-out sm:absolute sm:top-4 sm:right-4 sm:bottom-4",
             panelOpen ? "sm:left-[calc(28rem+1rem)]" : "sm:left-4",
           )}
         >
@@ -447,8 +448,8 @@ export default function NeoBrutalismPage() {
           id="editor-panel"
           aria-label="Editor"
           className={cn(
-            "neo-panel absolute top-3 bottom-3 left-3 z-20 flex w-[min(28rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-lg transition-transform duration-300 ease-out sm:top-4 sm:bottom-4 sm:left-4",
-            !panelOpen && "-translate-x-[calc(100%+1.5rem)] sm:-translate-x-[calc(100%+2rem)]",
+            "neo-panel relative z-20 flex max-sm:block max-sm:h-auto max-sm:flex-none max-sm:overflow-visible flex-col overflow-hidden rounded-lg transition-transform duration-300 ease-out sm:absolute sm:top-4 sm:bottom-4 sm:left-4 sm:w-[28rem]",
+            !panelOpen && "sm:-translate-x-[calc(100%+2rem)]",
           )}
         >
           {/* Filename bar */}
@@ -554,7 +555,8 @@ export default function NeoBrutalismPage() {
             currentLine={currentLine}
             onCursorLineChange={setCurrentLine}
             placeholder="Start writing Mermaid..."
-            className="flex-1"
+            ariaLabel="Mermaid source"
+            className="flex-1 max-sm:h-64"
           />
 
           {/* Examples strip */}
@@ -581,6 +583,7 @@ export default function NeoBrutalismPage() {
                   }
                 }}
                 placeholder="e.g. user login flow with OAuth and retry"
+                aria-label="Describe the diagram to generate"
                 rows={2}
                 disabled={isGenerating}
                 className="neo-input w-full resize-none rounded-md px-3 py-2 text-[13px] font-medium outline-none placeholder:text-[hsl(var(--neo-muted))] disabled:opacity-60"
@@ -613,7 +616,10 @@ export default function NeoBrutalismPage() {
                 </button>
               </div>
               {error && (
-                <div className="neo-stamp mt-2.5 flex items-start gap-2 rounded-md border-2 border-red-700 bg-red-100 px-3 py-2 text-[11px] text-red-950 shadow-[2px_2px_0_0_#000]">
+                <div
+                  role="alert"
+                  className="neo-stamp mt-2.5 flex items-start gap-2 rounded-md border-2 border-red-700 bg-red-100 px-3 py-2 text-[11px] text-red-950 shadow-[2px_2px_0_0_#000]"
+                >
                   <span className="font-bold uppercase tracking-wider">
                     Error
                   </span>
@@ -632,10 +638,8 @@ export default function NeoBrutalismPage() {
           aria-expanded={panelOpen}
           aria-controls="editor-panel"
           className={cn(
-            "neo-button absolute top-1/2 z-30 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md transition-[left] duration-300 ease-out",
-            panelOpen
-              ? "left-[calc(28rem+0.75rem)] sm:left-[calc(28rem+1rem)]"
-              : "left-3 sm:left-4",
+            "neo-button absolute top-1/2 z-30 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md transition-[left] duration-300 ease-out sm:inline-flex",
+            panelOpen ? "sm:left-[calc(28rem+1rem)]" : "left-3 sm:left-4",
           )}
         >
           {panelOpen ? (
