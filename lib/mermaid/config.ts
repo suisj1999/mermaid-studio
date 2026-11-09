@@ -66,7 +66,7 @@ export function getMermaidThemeVariables(isDark: boolean) {
 /**
  * Build the full Mermaid configuration used at render time.
  *
- * Pins `theme: "base"` + `layout: "elk"` so the diagram picks up our custom
+ * Pins `theme: "base"` + `layout: "dagre"` so the diagram picks up our custom
  * theme variables; `htmlLabels: false` because Mermaid's HTML labels are an
  * XSS surface that we'd rather not pay for; `themeCSS` adds the clickable
  * hover affordance.
@@ -92,7 +92,7 @@ export function buildMermaidConfig({
     secure: ["securityLevel", "startOnLoad", "maxTextSize"],
     theme: "base" as const,
     htmlLabels: false,
-    layout: "elk",
+    layout: "dagre",
     look: "classic" as const,
     flowchart: FLOWCHART_CONFIG,
     themeVariables,
@@ -108,7 +108,7 @@ export function buildMermaidInitDirective(isDark: boolean) {
   const payload = {
     theme: "base",
     look: "classic",
-    layout: "elk",
+    layout: "dagre",
     flowchart: FLOWCHART_CONFIG,
     themeVariables: getMermaidThemeVariables(isDark),
     themeCSS: THEME_CSS.trim(),
