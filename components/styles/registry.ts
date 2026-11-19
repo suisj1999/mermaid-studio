@@ -2,40 +2,66 @@ import dynamic from "next/dynamic";
 
 import type { ComponentType } from "react";
 
-export const DEFAULT_STYLE_ID = "neo-brutalism" as const;
+import type {
+  ConversationSnapshot,
+  ConversationSummary,
+} from "~/lib/conversations/types";
 
-export type StyleId = "neo-brutalism" | "newspaper";
+import type { StyleId } from "./ids";
 
-export interface StyleMetadata {
-  id: StyleId;
-  name: string;
-  description: string;
+export {
+  DEFAULT_STYLE_ID,
+  STYLE_IDS,
+  STYLE_METADATA,
+  isKnownStyleId,
+  type StyleId,
+  type StyleMetadata,
+} from "./ids";
+
+/** Props every style's home page receives. */
+export interface HomePageProps {
+  /** The already-validated style, resolved on the server. */
+  styleId: StyleId;
+  conversations: ConversationSummary[];
 }
 
-export const STYLE_METADATA: readonly StyleMetadata[] = [
-  {
-    id: "neo-brutalism",
-    name: "Neo-brutalism",
-    description: "",
-  },
-  {
-    id: "newspaper",
-    name: "Newspaper",
-    description: "",
-  },
-] as const;
-
-export const STYLE_IDS = STYLE_METADATA.map((style) => style.id);
-
-export function isKnownStyleId(value: unknown): value is StyleId {
-  return typeof value === "string" && (STYLE_IDS as readonly string[]).includes(value);
+/** Props every style's editor receives. */
+export interface EditorPageProps {
+  /** The already-validated style, resolved on the server. */
+  styleId: StyleId;
+  /** The conversation being edited, or `null` for a scratch editor. */
+  conversation: ConversationSnapshot | null;
+  /** Auto-save debounce in milliseconds; `0` disables auto-save. */
+  autoSaveIntervalMs: number;
 }
 
-export const STYLES: Record<StyleId, ComponentType> = {
-  "neo-brutalism": dynamic(
-    () => import("./neo-brutalism/Page").then((module) => module.default),
-  ),
-  newspaper: dynamic(
-    () => import("./newspaper/Page").then((module) => module.default),
-  ),
+/**
+ * Each style contributes two pages — a home page listing saved
+ * conversations and an editor. Both are lazy-loaded with `next/dynamic`
+ * (without `ssr: false`) so only the selected style's CSS and JS load,
+ * while the page still server-renders for crawlers.
+ */
+export const STYLE_PAGES: Record<
+  StyleId,
+  {
+    home: ComponentType<HomePageProps>;
+    editor: ComponentType<EditorPageProps>;
+  }
+> = {
+  "neo-brutalism": {
+    home: dynamic(
+      () => import("./neo-brutalism/HomePage").then((module) => module.default),
+    ),
+    editor: dynamic(
+      () => import("./neo-brutalism/EditorPage").then((module) => module.default),
+    ),
+  },
+  newspaper: {
+    home: dynamic(
+      () => import("./newspaper/HomePage").then((module) => module.default),
+    ),
+    editor: dynamic(
+      () => import("./newspaper/EditorPage").then((module) => module.default),
+    ),
+  },
 };

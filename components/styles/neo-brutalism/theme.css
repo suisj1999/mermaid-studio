@@ -26,11 +26,8 @@
   --neo-link-hover: 271 70% 48%;
   --neo-soft-text: 269 35% 30%;
   --neo-input-bg: 270 92% 89%;
-  --neo-edge: #33203f;
-  --neo-shadow: #33203f;
-  --neo-ink: #291b35;
-  --neo-muted: #6d5282;
-  --neo-line: #a17bbd;
+  --neo-ink: 272 33% 16%;
+  --neo-muted: 274 23% 42%;
 }
 
 .dark {
@@ -57,14 +54,18 @@
   --neo-link-hover: 275 90% 80%;
   --neo-soft-text: 270 18% 72%;
   --neo-input-bg: 264 24% 11%;
-  --neo-edge: #9677ae;
-  --neo-shadow: #09060e;
-  --neo-ink: #eee3f7;
-  --neo-muted: #ab9cb8;
-  --neo-line: #75588c;
+  --neo-ink: 273 56% 93%;
+  --neo-muted: 272 16% 67%;
 }
 
 @layer components {
+  .neo-page {
+    /* The page canvas. Kept off <body> so a style switch (client-side
+       navigation keeps the previous stylesheet in the document) cannot leak
+       one style's background into another. */
+    background-color: hsl(var(--background));
+  }
+
   .neo-panel {
     border: 3px solid #000 !important;
     background: linear-gradient(
@@ -183,6 +184,25 @@
     /* Used by shared <Diagram />'s pan/zoom layer. */
     border: 2px solid #000;
     background: hsl(var(--neo-panel-muted));
+  }
+
+  /* Focus ring — the UA default (thin blue) clashes with the brutalist
+     palette, so buttons, chips and links get a hard offset ring instead. */
+  .neo-button:focus-visible,
+  .neo-button-muted:focus-visible,
+  .surface-button-muted:focus-visible,
+  .neo-chip:focus-visible,
+  .neo-input:focus-visible {
+    outline: 3px solid #000;
+    outline-offset: 2px;
+  }
+
+  .dark .neo-button:focus-visible,
+  .dark .neo-button-muted:focus-visible,
+  .dark .surface-button-muted:focus-visible,
+  .dark .neo-chip:focus-visible,
+  .dark .neo-input:focus-visible {
+    outline-color: hsl(var(--neo-ink));
   }
 
   /* Code editor — gutter + syntax overlay + transparent textarea.
@@ -323,7 +343,7 @@
     color: hsl(var(--neo-button));
   }
 
-  .dark body {
+  .dark .neo-page {
     background-image:
       radial-gradient(
         ellipse at 18% 5%,

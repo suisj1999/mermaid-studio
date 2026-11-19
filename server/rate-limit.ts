@@ -15,6 +15,12 @@ const MAX_TRACKED_KEYS = 10_000;
 interface Window {
   count: number;
   resetAt: number;
+  /**
+   * Ceiling this window was opened with. It is stored on the window rather
+   * than read per call so a later request cannot raise the limit for a key
+   * that is already being counted.
+   */
+  max: number;
 }
 
 const windows = new Map<string, Window>();
@@ -40,18 +46,28 @@ export interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
-export function checkRateLimit(key: string): RateLimitResult {
+/**
+ * Check whether `key` may make another request in the current window.
+ *
+ * `maxRequests` defaults to the paid-endpoint ceiling. Endpoints that are
+ * cheap but called often — the auto-save PATCH fires every couple of
+ * seconds while the user types — pass their own, higher ceiling.
+ */
+export function checkRateLimit(
+  key: string,
+  maxRequests: number = MAX_REQUESTS,
+): RateLimitResult {
   const now = Date.now();
   prune(now);
 
   const existing = windows.get(key);
   if (!existing || existing.resetAt <= now) {
-    windows.set(key, { count: 1, resetAt: now + WINDOW_MS });
-    return { ok: true, remaining: MAX_REQUESTS - 1, retryAfterSeconds: 0 };
+    windows.set(key, { count: 1, resetAt: now + WINDOW_MS, max: maxRequests });
+    return { ok: true, remaining: maxRequests - 1, retryAfterSeconds: 0 };
   }
 
   existing.count += 1;
-  if (existing.count > MAX_REQUESTS) {
+  if (existing.count > existing.max) {
     return {
       ok: false,
       remaining: 0,
@@ -61,7 +77,7 @@ export function checkRateLimit(key: string): RateLimitResult {
 
   return {
     ok: true,
-    remaining: MAX_REQUESTS - existing.count,
+    remaining: existing.max - existing.count,
     retryAfterSeconds: 0,
   };
 }

@@ -1,33 +1,29 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  DEFAULT_STYLE_ID,
-  isKnownStyleId,
-  type StyleId,
-} from "./registry";
+import { useRouter } from "next/navigation";
+
+import type { StyleId } from "./ids";
+import { styleEditorHref, styleHomeHref } from "./urls";
 
 /**
- * Read the active UI style from the `?ui-style=` URL parameter. Falls back
- * to the default style when the param is missing or unknown — the same
- * fallback `app/page.tsx` applies before the page even renders, so this
- * hook is the page-level mirror of that contract.
- */
-export function useCurrentStyle(): StyleId {
-  const params = useSearchParams();
-  const raw = params.get("ui-style");
-  return isKnownStyleId(raw) ? raw : DEFAULT_STYLE_ID;
-}
-
-/**
- * Navigate to the URL for `id`. The default style's URL is `/` (no query),
- * every other style is `/?ui-style=<id>`. Uses `replace` (not `push`) so
- * the back button doesn't accumulate style swaps.
+ * Navigate to the editor for `id`, optionally opening a saved
+ * conversation. Uses `replace` (not `push`) so the back button doesn't
+ * accumulate style swaps.
  */
 export function navigateToStyle(
   router: ReturnType<typeof useRouter>,
   id: StyleId,
+  conversationId?: string | null,
 ) {
-  const target = id === DEFAULT_STYLE_ID ? "/" : `/?ui-style=${id}`;
-  router.replace(target);
+  router.replace(styleEditorHref(id, conversationId));
+}
+
+/**
+ * Navigate to the home page in the given style.
+ */
+export function navigateToHomeStyle(
+  router: ReturnType<typeof useRouter>,
+  id: StyleId,
+) {
+  router.replace(styleHomeHref(id));
 }

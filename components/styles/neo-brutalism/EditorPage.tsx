@@ -19,17 +19,17 @@ import {
   Download,
   FileCode2,
   Github,
+  Home,
   Image as ImageIcon,
   Loader2,
+  MessageSquare,
   Moon,
+  Send,
   Share2,
-  Sparkles,
   Sun,
-  Wand2,
   Zap,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useRouter, useSearchParams } from "next/navigation";
 import Diagram from "~/components/diagram";
 import { CodeEditor } from "~/components/code-editor";
 import { downloadPng, downloadSvg } from "~/lib/download";
@@ -40,25 +40,12 @@ import {
 } from "~/lib/mermaid/config";
 import { formatShareUrl } from "~/lib/share/encode";
 import { cn } from "~/lib/utils";
-import {
-  DEFAULT_STYLE_ID,
-  STYLE_METADATA,
-  isKnownStyleId,
-  type StyleId,
-} from "~/components/styles/registry";
-import {
-  navigateToStyle,
-  useCurrentStyle,
-} from "~/components/styles/switcher";
+import { type EditorPageProps } from "~/components/styles/registry";
+import { NeoStyleSwitcher } from "~/components/styles/neo-brutalism/style-switcher";
+import { styleHomeHref } from "~/components/styles/urls";
+import { useConversation } from "~/hooks/use-conversation";
 import { useSharedSource } from "~/hooks/use-shared-source";
 import { useToast } from "~/hooks/use-toast";
-
-const DEFAULT_SOURCE = `graph TD
-  A[User] --> B{Authenticated?}
-  B -->|yes| C[Dashboard]
-  B -->|no| D[Login Page]
-  D --> E[OAuth Provider]
-  E --> B`;
 
 function Logo() {
   return (
@@ -98,7 +85,7 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      aria-label="Toggle theme"
+      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       className="neo-button-muted inline-flex h-10 w-10 items-center justify-center rounded-md transition-all"
     >
       {mounted ? (
@@ -111,82 +98,6 @@ function ThemeToggle() {
         <Sun size={16} strokeWidth={2.5} className="opacity-0" />
       )}
     </button>
-  );
-}
-
-function StyleSwitcher() {
-  const router = useRouter();
-  const current = useCurrentStyle();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: MouseEvent) => {
-      if (!ref.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [open]);
-
-  const navigate = (id: StyleId) => {
-    navigateToStyle(router, id);
-    setOpen(false);
-  };
-
-  const currentName =
-    STYLE_METADATA.find((style) => style.id === current)?.name ?? "Style";
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`Change UI style, currently ${currentName}`}
-        className="neo-button-muted inline-flex h-10 items-center gap-1.5 px-3 text-[10px] font-bold tracking-[0.14em] uppercase"
-      >
-        {currentName}
-        <ChevronDown
-          size={12}
-          strokeWidth={2.75}
-          className={cn("transition-transform", open && "rotate-180")}
-        />
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="neo-panel absolute right-0 top-full z-30 mt-2 w-56 overflow-hidden rounded-lg"
-        >
-          {STYLE_METADATA.map((style, index) => (
-            <button
-              key={style.id}
-              type="button"
-              role="menuitem"
-              onClick={() => navigate(style.id)}
-              className={cn(
-                "flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs transition-colors hover:bg-black/5 dark:hover:bg-white/5",
-                index < STYLE_METADATA.length - 1 &&
-                  "border-b-[2px] border-black dark:border-[#1a0d30]",
-              )}
-            >
-              <span className="flex items-center gap-2 font-bold text-black dark:text-[hsl(var(--neo-ink))]">
-                {style.name}
-                {style.id === current && (
-                  <Check size={11} strokeWidth={2.75} />
-                )}
-              </span>
-              <span className="text-[10px] text-[hsl(var(--neo-muted))] dark:text-[hsl(var(--neo-muted))]">
-                {style.description}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -218,15 +129,27 @@ function StatPill({
   );
 }
 
-export default function NeoBrutalismPage() {
-  const [source, setSource] = useState(DEFAULT_SOURCE);
+export default function NeoBrutalismEditorPage({
+  styleId,
+  conversation,
+  autoSaveIntervalMs,
+}: EditorPageProps) {
+  const {
+    conversationId,
+    title,
+    setTitle,
+    source,
+    setSource,
+    applySource,
+    messages,
+    modelInfo,
+    sendMessage,
+    isGenerating,
+    error,
+    saveState,
+  } = useConversation({ initial: conversation, autoSaveIntervalMs });
+
   const [prompt, setPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [modelInfo, setModelInfo] = useState<{
-    provider: string;
-    model: string;
-  } | null>(null);
   const [copied, setCopied] = useState<"themed" | "raw" | null>(null);
   const [currentLine, setCurrentLine] = useState<number | null>(null);
   const [copyMenuOpen, setCopyMenuOpen] = useState(false);
@@ -248,8 +171,7 @@ export default function NeoBrutalismPage() {
   }, [source]);
 
   const { toast, showToast } = useToast();
-  useSharedSource(setSource);
-  const currentStyle = useCurrentStyle();
+  useSharedSource(applySource);
 
   useEffect(() => {
     if (!copyMenuOpen) return;
@@ -296,8 +218,8 @@ export default function NeoBrutalismPage() {
   };
 
   const handleShare = async () => {
-    const baseUrl = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-    const url = formatShareUrl(baseUrl, currentStyle, {
+    const baseUrl = `${window.location.origin}/editor`;
+    const url = formatShareUrl(baseUrl, styleId, {
       v: 1,
       s: source,
       t: isDark ? "dark" : "light",
@@ -322,40 +244,21 @@ export default function NeoBrutalismPage() {
     );
   };
 
-  const handleGenerate = async () => {
+  const handleSend = async () => {
     if (!prompt.trim() || isGenerating) return;
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      }
-      if (data.error) throw new Error(data.error);
-      if (data.mermaid) {
-        setSource(data.mermaid);
-      }
-      if (data.provider && data.model) {
-        setModelInfo({ provider: data.provider, model: data.model });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed");
-    } finally {
-      setIsGenerating(false);
-    }
+    const sent = prompt;
+    setPrompt("");
+    await sendMessage(sent);
   };
 
   return (
-    <main className="flex max-sm:h-auto min-h-screen flex-col sm:h-screen">
+    <main className="neo-page flex max-sm:h-auto min-h-screen flex-col sm:h-screen">
       {/* Header */}
-      <header className="neo-panel-thin m-3 mb-0 flex items-center justify-between gap-3 rounded-lg px-4 py-2.5 sm:m-4 sm:mb-0 sm:px-5">
+      {/* Below sm the control cluster is taller than the logo, so the header
+          stacks instead of leaving the logo stranded mid-column. */}
+      <header className="neo-panel-thin m-3 mb-0 flex flex-col items-stretch gap-2 rounded-lg px-4 py-2.5 sm:m-4 sm:mb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-5">
         <Logo />
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
           <StatPill
             icon={
               <span
@@ -367,6 +270,14 @@ export default function NeoBrutalismPage() {
             }
             label={deferredSource ? "rendered" : "empty"}
             tone={deferredSource ? "ok" : "default"}
+          />
+          <StatPill
+            icon={<span className="opacity-80">≡</span>}
+            label={`${stats.lines} ln`}
+          />
+          <StatPill
+            icon={<span className="opacity-80">·</span>}
+            label={`${stats.chars} ch`}
           />
           {modelInfo && (
             <StatPill
@@ -411,6 +322,14 @@ export default function NeoBrutalismPage() {
             </button>
           </div>
           <a
+            href={styleHomeHref(styleId)}
+            aria-label="Back to saved diagrams"
+            title="Back to saved diagrams"
+            className="neo-button-muted inline-flex h-10 w-10 items-center justify-center rounded-md transition-all"
+          >
+            <Home size={16} strokeWidth={2.5} />
+          </a>
+          <a
             href="https://github.com/suisj1999/mermaid-studio"
             target="_blank"
             rel="noopener noreferrer"
@@ -419,7 +338,11 @@ export default function NeoBrutalismPage() {
           >
             <Github size={16} strokeWidth={2.5} />
           </a>
-          <StyleSwitcher />
+          <NeoStyleSwitcher
+            styleId={styleId}
+            target="editor"
+            conversationId={conversationId}
+          />
           <ThemeToggle />
         </div>
       </header>
@@ -454,22 +377,18 @@ export default function NeoBrutalismPage() {
         >
           {/* Filename bar */}
           <div className="flex items-center justify-between border-b-[3px] border-black px-4 py-2.5 dark:border-[#1a0d30]">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <FileCode2
                 size={14}
                 strokeWidth={2.5}
-                className="text-black dark:text-[hsl(var(--neo-ink))]"
+                className="shrink-0 text-black dark:text-[hsl(var(--neo-ink))]"
               />
-              <span className="font-mono text-[13px] font-bold tracking-tight text-black dark:text-[hsl(var(--neo-ink))]">
-                diagram.mmd
-              </span>
-              <StatPill
-                icon={<span className="opacity-80">≡</span>}
-                label={`${stats.lines} ln`}
-              />
-              <StatPill
-                icon={<span className="opacity-80">·</span>}
-                label={`${stats.chars} ch`}
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Untitled diagram"
+                aria-label="Diagram title"
+                className="min-w-0 flex-1 border-b-2 border-transparent bg-transparent font-mono text-[13px] font-bold tracking-tight text-black outline-none placeholder:text-[hsl(var(--neo-muted))] focus:border-black dark:text-[hsl(var(--neo-ink))] dark:focus:border-[hsl(var(--neo-ink))]"
               />
             </div>
             <div className="relative" ref={copyMenuRef}>
@@ -559,42 +478,66 @@ export default function NeoBrutalismPage() {
             className="flex-1 max-sm:h-64"
           />
 
-          {/* Examples strip */}
-          {/* Generator card */}
-          <div className="border-t-[3px] border-black p-4 dark:border-[#1a0d30]">
+          {/* Conversation */}
+          <div className="shrink-0 border-t-[3px] border-black p-4 dark:border-[#1a0d30]">
             <div className="mb-2.5 flex items-center gap-2">
-              <Wand2
+              <MessageSquare
                 size={14}
                 strokeWidth={2.5}
                 className="text-black dark:text-[hsl(var(--neo-ink))]"
               />
               <span className="text-[10px] font-bold tracking-[0.16em] text-[hsl(var(--neo-soft-text))] uppercase">
-                Generate from description
+                Refine the diagram
               </span>
             </div>
             <div className="neo-panel-thin rounded-md p-3">
+              {messages.length > 0 && (
+                <div className="neo-panel-thin mb-2.5 max-h-40 overflow-y-auto rounded-md">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className="border-b-2 border-black/10 px-2.5 py-2 last:border-b-0 dark:border-white/10"
+                    >
+                      <span className="text-[9px] font-bold tracking-[0.16em] text-[hsl(var(--neo-muted))] uppercase">
+                        {message.role === "user" ? "You" : "Assistant"}
+                      </span>
+                      <p className="mt-0.5 text-[12px] leading-snug text-black dark:text-[hsl(var(--neo-ink))]">
+                        {message.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                     e.preventDefault();
-                    void handleGenerate();
+                    void handleSend();
                   }
                 }}
                 placeholder="e.g. user login flow with OAuth and retry"
-                aria-label="Describe the diagram to generate"
+                aria-label="Describe the change to apply to the diagram"
                 rows={2}
                 disabled={isGenerating}
                 className="neo-input w-full resize-none rounded-md px-3 py-2 text-[13px] font-medium outline-none placeholder:text-[hsl(var(--neo-muted))] disabled:opacity-60"
               />
               <div className="mt-2.5 flex items-center justify-between gap-2">
                 <span className="text-[10px] font-semibold tracking-[0.1em] text-[hsl(var(--neo-muted))] uppercase">
-                  ⌘ + Enter to send
+                  {saveState === "saving"
+                    ? "Saving…"
+                    : saveState === "dirty"
+                      ? "Unsaved"
+                      : saveState === "error"
+                        ? "Save failed"
+                        : saveState === "saved"
+                          ? "Saved"
+                          : "⌘ + Enter to send"}
                 </span>
                 <button
                   type="button"
-                  onClick={() => void handleGenerate()}
+                  onClick={() => void handleSend()}
                   disabled={!prompt.trim() || isGenerating}
                   className="neo-button inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-[1px_1px_0_0_#000]"
                 >
@@ -609,8 +552,8 @@ export default function NeoBrutalismPage() {
                     </>
                   ) : (
                     <>
-                      <Sparkles size={13} strokeWidth={2.75} />
-                      Generate
+                      <Send size={13} strokeWidth={2.75} />
+                      Send
                     </>
                   )}
                 </button>

@@ -115,6 +115,13 @@ sequenceDiagram
   C->>S: ACK
 \`\`\``;
 
+const EDITING_RULES = `Editing an existing diagram:
+- The conversation may contain an earlier assistant turn holding the diagram that is currently in play.
+- When it does, the user's request describes a CHANGE to that diagram, not a fresh one.
+- Apply the change and output the COMPLETE updated diagram — never a diff, a patch or a fragment.
+- Keep every part of the diagram the request does not mention identical, including its classDef palette and node ids.
+- If the request is ambiguous, make the smallest reasonable change rather than redesigning the diagram.`;
+
 export const SYSTEM_PROMPT = `You are a Mermaid diagram expert with a strong aesthetic sense. The user describes what they want in plain language; you output Mermaid source code that renders with clear visual hierarchy and a polished, neo-brutalist look.
 
 ${OUTPUT_RULES}
@@ -122,5 +129,7 @@ ${OUTPUT_RULES}
 ${STRUCTURE_CONVENTIONS}
 
 ${COLOR_PALETTE}
+
+${EDITING_RULES}
 
 ${FEW_SHOT_EXAMPLES}`;
