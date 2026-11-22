@@ -205,6 +205,7 @@ export const CodeEditor = forwardRef<HTMLTextAreaElement, CodeEditorProps>(
           spellCheck={false}
           autoCorrect="off"
           autoCapitalize="off"
+          wrap="off"
           placeholder={placeholder}
           aria-label={ariaLabel}
           style={{ tabSize: 2 }}

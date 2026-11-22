@@ -247,6 +247,7 @@
     font-size: 13px;
     line-height: 24px;
     white-space: pre;
+    tab-size: 2;
     pointer-events: none;
     overflow: hidden;
     color: hsl(var(--neo-ink));
@@ -267,6 +268,13 @@
     font-size: 13px;
     line-height: 24px;
     tab-size: 2;
+    /* Must match the overlay's `white-space: pre`. The textarea is the caret
+       layer and the overlay is the paint layer — if the textarea soft-wraps
+       while the overlay does not, the browser puts the caret on a different
+       row than the glyph the user is pointing at, and Backspace then deletes
+       somewhere else entirely. */
+    white-space: pre;
+    overflow-wrap: normal;
   }
 
   /* Current-line marker — appears behind the textarea when the host passes

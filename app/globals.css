@@ -26,9 +26,14 @@
     font-size: 13px;
     line-height: 1.5;
   }
-}
 
-textarea,
-input {
-  font-family: inherit;
+  /* Form controls inherit the app font by default. This has to live in the
+     base layer: unlayered rules outrank every @layer, so it would beat a
+     style's own `font-family` on the editor textarea — and a textarea whose
+     font differs from the layer painting its text puts the caret at a
+     different x than the glyph the user is looking at. */
+  textarea,
+  input {
+    font-family: inherit;
+  }
 }

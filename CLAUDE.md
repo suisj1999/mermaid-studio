@@ -164,6 +164,17 @@ Page-level markup is **not** part of the contract. The home page, the editor and
 
 Shared components must not hard-code colours, borders or hover/active states — those come from the style's `.surface-*` rules. A Tailwind colour utility on a shared component silently overrides the themed value (utilities beat `@layer components`), which is how the toolbar once ended up with ~1.3:1 contrast in newspaper dark mode.
 
+## Code editor layers
+
+`<CodeEditor />` paints in three layers: the gutter (line numbers), the overlay (a tokenized `<pre>` that paints the glyphs) and the textarea (transparent text, so only the caret is interactive). **The caret layer and the paint layer must lay text out identically** — same font, same wrapping, same tab stops — or the caret drifts away from the glyph and Backspace deletes somewhere the user isn't pointing at.
+
+The properties that must match: `font-family`, `font-size`, `line-height`, `white-space`, `tab-size` and the left padding. Two traps:
+
+- **An unlayered rule beats every `@layer`.** A `textarea, input { font-family: inherit }` left outside `@layer base` in `app/globals.css` silently overrode the themes' `@layer components` font, so the textarea fell back to the sans-serif app font while the overlay stayed monospace.
+- **The textarea soft-wraps by default.** `white-space: pre-wrap` (plus `wrap="off"`) makes it disagree with the overlay's `white-space: pre`; every wrapped line shifts the caret a row away from its glyph.
+
+Verify by measuring, not by inspection: mirror the textarea's computed styles into a hidden div, then compare the caret's x/y with the overlay's glyph rect for the same character offset. They should be identical (dx = dy = 0), including when the editor is scrolled horizontally and at the bottom of the vertical range.
+
 ## Layout engine
 
 `lib/mermaid/config.ts` pins `layout: "dagre"`. Mermaid's `"elk"` layout lazy-loads `elkjs` as a separate chunk (~423 KB gzipped) that the browser downloads on first render; dagre ships inside the main bundle. Measured on a production build: 793 KB of JS transferred with elk vs 366 KB with dagre. Switch back only if a diagram type needs ELK's routing — and re-measure the transfer cost when you do.
