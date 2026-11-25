@@ -197,10 +197,10 @@ Below the `sm`/`md` breakpoint each style switches from a fixed-viewport app she
 | Bucket | Ceiling | Why |
 |---|---|---|
 | `chat:<client>` | 10/min | Generation spends money per call. |
-| `generate:<client>` | 10/min | The legacy one-shot path. |
-| `conversations:create:` | 30/min | One call per new conversation. |
-| `conversations:autosave:` | 120/min | Auto-save fires on every edit — a 2 s interval would blow a 10/min ceiling. |
-| `conversations:delete:` | 30/min | Rare but destructive. |
+| `<client>` (the legacy generate route) | 10/min | The legacy one-shot path. It keys on the bare client id, so it shares a bucket with any other route that does the same. |
+| `conversations:create:<client>` | 10/min | One call per new conversation — the default ceiling; the route does not override it. |
+| `conversations:autosave:<client>` | 120/min | Auto-save fires on every edit — a 2 s interval would blow a 10/min ceiling. |
+| `conversations:delete:<client>` | 30/min | Rare but destructive. |
 
 The limiter is in-process: on serverless each instance keeps its own counters, so treat it as friction rather than a quota. The stored ceiling is remembered per key, so a bucket's limit cannot be raised mid-window.
 
